@@ -1,0 +1,1763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shakespeare GPT — User Guide</title>
+  <style>
+    :root {
+      --bg:      #0f1117;
+      --surface: #1a1d27;
+      --card:    #22263a;
+      --border:  #2e3350;
+      --accent:  #7c83fd;
+      --orange:  #f78c6c;
+      --green:   #4ade80;
+      --yellow:  #fbbf24;
+      --red:     #f87171;
+      --text:    #e2e8f0;
+      --muted:   #8892b0;
+      --code-bg: #141720;
+      --r:       10px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg); color: var(--text);
+      line-height: 1.75; font-size: 15px;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #1a1d27 0%, #0f1117 70%);
+      border-bottom: 1px solid var(--border);
+      padding: 52px 40px 38px; text-align: center;
+    }
+    .hero h1 { font-size: 2.4rem; color: #fff; letter-spacing: -.5px; }
+    .hero h1 span { color: var(--accent); }
+    .hero p  { color: var(--muted); margin-top: 10px; font-size: 1.05rem; }
+    .badge {
+      display: inline-block; background: var(--card);
+      border: 1px solid var(--border); border-radius: 20px;
+      padding: 4px 14px; font-size: .78rem; color: var(--accent);
+      margin: 18px 4px 0; letter-spacing: .5px;
+    }
+
+    /* ── Nav ── */
+    nav {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 8px 16px; position: sticky; top: 0; z-index: 100;
+    }
+    .nav-wrap {
+      max-width: 1100px; margin: 0 auto; display: flex;
+      align-items: center; justify-content: space-between; gap: 10px;
+    }
+    .nav-title { color: var(--muted); font-size: .85rem; white-space: nowrap; }
+    .nav-actions {
+      display: flex; gap: 8px; align-items: center; flex-wrap: nowrap; overflow-x: auto;
+      scrollbar-width: thin;
+    }
+    .nav-chip {
+      text-decoration: none; color: var(--accent); border: 1px solid var(--border);
+      background: var(--card); border-radius: 999px; padding: 5px 10px; font-size: .78rem; white-space: nowrap;
+    }
+    .nav-chip:hover { color: #fff; border-color: var(--accent); }
+    .highlights-toggle {
+      border: 1px solid var(--border); background: var(--card); color: var(--accent);
+      border-radius: 999px; padding: 5px 10px; cursor: pointer; font-size: .78rem; white-space: nowrap;
+    }
+    .highlights-toggle:hover { color: #fff; border-color: var(--accent); }
+    .hamburger {
+      border: 1px solid var(--border); background: var(--card); color: var(--text);
+      border-radius: 8px; padding: 8px 10px; cursor: pointer; font-size: .86rem;
+      white-space: nowrap;
+    }
+    .nav-right { display: flex; align-items: center; gap: 8px; }
+    #highlights-toggle-mobile { display: none; }
+    .menu-panel {
+      display: none; margin-top: 8px; border: 1px solid var(--border);
+      border-radius: 10px; background: var(--card); padding: 8px;
+      max-width: 1100px; margin-left: auto; margin-right: auto;
+    }
+    .menu-panel.open { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+    @media (max-width: 640px) { .menu-panel.open { grid-template-columns: 1fr; } }
+    .menu-panel a {
+      color: var(--muted); text-decoration: none; padding: 8px 10px;
+      border-radius: 8px; border: 1px solid transparent; font-size: .86rem;
+    }
+    .menu-panel a:hover { color: var(--text); border-color: var(--accent); background: #2a3158; }
+    .highlights-panel {
+      display: none; max-width: 1100px; margin: 8px auto 0; border: 1px solid var(--border);
+      border-radius: 10px; background: var(--card); padding: 10px 12px;
+    }
+    .highlights-panel.open { display: block; }
+    @media (max-width: 860px) {
+      .nav-actions { display: none; }
+      .nav-title { display: none; }
+      #highlights-toggle-mobile { display: inline-block; }
+    }
+    details.compact { margin-top: 16px; display: inline-block; text-align: left; }
+    details.compact summary {
+      cursor: pointer; color: var(--accent); font-size: .86rem; list-style: none;
+      border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; background: var(--card);
+    }
+    details.compact summary::-webkit-details-marker { display: none; }
+
+    /* ── Layout ── */
+    .container { max-width: 920px; margin: 0 auto; padding: 44px 24px 90px; }
+    section { margin-bottom: 60px; scroll-margin-top: 64px; }
+    h2 {
+      font-size: 1.5rem; color: #fff; margin-bottom: 20px;
+      padding-bottom: 10px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+    }
+    h3 { font-size: 1.05rem; color: var(--accent); margin: 26px 0 10px; }
+    p  { color: var(--text); margin-bottom: 14px; }
+    ul, ol { margin-left: 22px; margin-bottom: 14px; color: var(--text); }
+    li { margin-bottom: 6px; }
+
+    /* ── Steps ── */
+    .steps { counter-reset: step; }
+    .step  { display: flex; gap: 18px; margin-bottom: 22px; align-items: flex-start; }
+    .step-num {
+      counter-increment: step; flex-shrink: 0; width: 32px; height: 32px;
+      border-radius: 50%; background: var(--accent); color: #fff;
+      font-weight: 700; font-size: .85rem;
+      display: flex; align-items: center; justify-content: center; margin-top: 2px;
+    }
+    .step-body { flex: 1; }
+    .step-body strong { display: block; color: #fff; margin-bottom: 4px; font-size: 1rem; }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 20px 24px; margin-bottom: 16px;
+    }
+    .card-title {
+      font-weight: 700; color: #fff; margin-bottom: 10px; font-size: 1rem;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    /* ── Feature cards ── */
+    .feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 18px 0; }
+    @media (max-width: 640px) { .feature-grid { grid-template-columns: 1fr; } }
+    .feature-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 18px 20px;
+      border-top: 3px solid var(--accent);
+    }
+    .feature-card.orange { border-top-color: var(--orange); }
+    .feature-card.green  { border-top-color: var(--green);  }
+    .feature-card.yellow { border-top-color: var(--yellow); }
+    .feature-card h4 { color: #fff; margin-bottom: 8px; font-size: .98rem; }
+    .feature-card p  { font-size: .88rem; color: var(--muted); margin: 0; }
+
+    /* ── Callouts ── */
+    .callout {
+      border-radius: var(--r); padding: 14px 18px; margin: 18px 0;
+      border-left: 4px solid; font-size: .92rem;
+    }
+    .callout.tip  { background: #0f2820; border-color: var(--green);  color: #a7f3d0; }
+    .callout.note { background: #1a1d3a; border-color: var(--accent); color: #c7d2fe; }
+    .callout.warn { background: #2a1a0a; border-color: var(--yellow); color: #fde68a; }
+    .callout strong { font-weight: 700; }
+
+    /* ── Code ── */
+    code {
+      font-family: "SF Mono", "Fira Code", monospace; font-size: .87em;
+      background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 4px; padding: 2px 6px; color: var(--orange);
+    }
+    pre {
+      background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 16px 20px;
+      overflow-x: auto; margin: 12px 0;
+    }
+    pre code { background: none; border: none; padding: 0; font-size: .88rem; color: var(--text); line-height: 1.6; }
+    .cm { color: var(--muted); }
+    .hl { color: var(--orange); }
+    .gr { color: var(--green); }
+
+    /* ── Diagram ── */
+    .ui-diagram {
+      background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 20px; font-family: monospace;
+      font-size: .8rem; line-height: 1.55; color: var(--text);
+      overflow-x: auto; margin: 14px 0;
+    }
+    .ui-tab    { color: var(--accent); font-weight: bold; }
+    .ui-button { color: var(--green); }
+    .ui-label  { color: var(--yellow); }
+
+    /* ── Colour key demo ── */
+    .color-demo {
+      display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0;
+      font-family: "SF Mono", monospace; font-size: 13px;
+    }
+    .swatch {
+      padding: 4px 10px; border-radius: 4px; color: #fff;
+      font-weight: 600; letter-spacing: .5px;
+    }
+
+    /* ── Table ── */
+    table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: .9rem; }
+    th {
+      background: var(--card); color: var(--accent); text-align: left;
+      padding: 10px 14px; font-size: .78rem; text-transform: uppercase;
+      letter-spacing: .5px; border-bottom: 1px solid var(--border);
+    }
+    td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--card); }
+
+    /* ── TOC ── */
+    .toc {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 22px 26px; margin-bottom: 44px;
+    }
+    .toc h3 { margin: 0 0 14px; color: var(--muted); font-size: .78rem;
+              text-transform: uppercase; letter-spacing: 1px; }
+    .toc ol { padding-left: 20px; }
+    .toc li { margin-bottom: 7px; }
+    .toc a  { color: var(--accent); text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+    .role-switch {
+      display: flex; gap: 8px; margin: 0 0 16px; flex-wrap: wrap;
+    }
+    .nav-role-switch {
+      max-width: 1100px; margin: 8px auto 6px; justify-content: flex-end;
+    }
+    @media (max-width: 860px) { .nav-role-switch { justify-content: flex-start; } }
+    .role-switch button {
+      background: var(--card); color: var(--muted); border: 1px solid var(--border);
+      border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: .82rem;
+    }
+    .role-switch button.active {
+      color: #fff; border-color: var(--accent); background: #2a3158;
+    }
+    .task-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px;
+    }
+    @media (max-width: 760px) { .task-grid { grid-template-columns: 1fr; } }
+    .task-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--r);
+      padding: 14px 16px;
+    }
+    .task-card h4 { font-size: .93rem; margin-bottom: 8px; color: #fff; }
+    .task-card p { margin: 0 0 8px; color: var(--muted); font-size: .86rem; }
+    .task-card a { color: var(--accent); text-decoration: none; font-size: .84rem; }
+    .task-card a:hover { text-decoration: underline; }
+    .triplet {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 12px 0 16px;
+    }
+    @media (max-width: 760px) { .triplet { grid-template-columns: 1fr; } }
+    .triplet .card { margin: 0; padding: 12px 14px; }
+    .triplet .card-title { font-size: .86rem; margin-bottom: 6px; }
+    .advanced-hidden .advanced-only { display: none; }
+    .role-po .research-only { display: none !important; }
+    .role-research .po-only { display: none !important; }
+    .mode-banner {
+      margin: 0 0 14px; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px;
+      background: var(--card); color: var(--muted); font-size: .84rem;
+    }
+    .mode-banner strong { color: #fff; }
+    .accordion-controls {
+      display: flex; gap: 8px; margin: 0 0 14px; flex-wrap: wrap;
+    }
+    .accordion-controls button, .section-toggle {
+      border: 1px solid var(--border); background: var(--card); color: var(--muted);
+      border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: .82rem;
+    }
+    .accordion-controls button:hover, .section-toggle:hover {
+      color: #fff; border-color: var(--accent);
+    }
+    .section-head {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    }
+    .section-collapsed > :not(.section-head) { display: none; }
+
+    footer {
+      text-align: center; color: var(--muted); font-size: .82rem;
+      padding: 24px; border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>🎭 <span>Shakespeare GPT</span> — User Guide</h1>
+  <p>A tiny character-level language model trained on Shakespeare, with a live browser interface.</p>
+</div>
+
+<nav>
+  <div class="nav-wrap">
+    <div class="nav-title">Guide Menu</div>
+    <div class="nav-actions">
+      <a class="nav-chip" href="#start">Quick Start</a>
+      <a class="nav-chip" href="#wizard">Use Wizard</a>
+      <a class="nav-chip" href="#generate">Generate</a>
+      <a class="nav-chip" href="#history">History + Report</a>
+      <a class="nav-chip research-only advanced-nav" href="#metrics">Advanced Tools</a>
+      <a class="nav-chip" href="#agents">AI Agents</a>
+      <button id="highlights-toggle" class="highlights-toggle" type="button" aria-expanded="false" aria-controls="highlights-panel">Show feature highlights</button>
+    </div>
+    <div class="nav-right">
+      <button id="highlights-toggle-mobile" class="highlights-toggle" type="button" aria-expanded="false" aria-controls="highlights-panel">Highlights</button>
+      <button id="menu-toggle" class="hamburger" type="button" aria-expanded="false" aria-controls="menu-panel">☰ Menu</button>
+    </div>
+  </div>
+  <div id="highlights-panel" class="highlights-panel">
+    <span class="badge">216 K parameters</span>
+    <span class="badge">65-char vocabulary</span>
+    <span class="badge">4-layer transformer</span>
+    <span class="badge">Confidence colours</span>
+    <span class="badge">Entropy chart</span>
+    <span class="badge">Branch explorer</span>
+    <span class="badge">Score any text</span>
+    <span class="badge">🌡️ Temperature gallery</span>
+    <span class="badge">⏪ Training replay</span>
+    <span class="badge">🔍 Verbatim detector</span>
+    <span class="badge">🔭 Attention heatmap</span>
+    <span class="badge">🧭 Guided wizard</span>
+    <span class="badge">📚 Run history</span>
+    <span class="badge">🧾 Report export</span>
+    <span class="badge">🎚 Audience mode</span>
+  </div>
+  <div id="menu-panel" class="menu-panel">
+    <a href="#start">Start</a>
+    <a href="#interface">Use the App</a>
+    <a href="#wizard">Wizard</a>
+    <a href="#history">History</a>
+    <a href="#train">Train</a>
+    <a href="#generate">Generate</a>
+    <a href="#replay">Replay</a>
+    <a href="#attention">Attention</a>
+    <a href="#metrics" class="research-only advanced-nav">Advanced</a>
+    <a href="#agents">AI Agents</a>
+  </div>
+  <div class="role-switch nav-role-switch">
+    <button id="role-po" class="active" type="button">Product Owner View</button>
+    <button id="role-research" type="button">Researcher View</button>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="mode-banner">
+    <div class="po-only"><strong>Product Owner mode:</strong> simplified path, less technical depth, faster decisions.</div>
+    <div class="research-only"><strong>Researcher mode:</strong> full technical depth, advanced sections, and deeper diagnostics.</div>
+  </div>
+  <div class="accordion-controls">
+    <button id="collapse-all" type="button">Collapse sections</button>
+    <button id="expand-all" type="button">Expand sections</button>
+  </div>
+
+  <div class="task-grid">
+    <div class="task-card">
+      <h4>New here?</h4>
+      <p>Get the app running and create your first output in a few minutes.</p>
+      <a href="#start">Go to quick start →</a>
+    </div>
+    <div class="task-card">
+      <h4>Need useful output fast?</h4>
+      <p>Use Wizard first, then Generate with simple settings.</p>
+      <a href="#wizard">Open Wizard guide →</a>
+    </div>
+    <div class="task-card">
+      <h4>Want to improve quality?</h4>
+      <p>Use scorecard, under-the-hood, and replay to tune settings.</p>
+      <a href="#generate">See result understanding →</a>
+    </div>
+    <div class="task-card po-only">
+      <h4>Need the simplest path?</h4>
+      <p>Use Wizard first, keep tabs in Simple view, and use Auto-fix when needed.</p>
+      <a href="#wizard">Open the simple flow →</a>
+    </div>
+    <div class="task-card research-only">
+      <h4>Need deeper analysis?</h4>
+      <p>Jump to metrics, TensorBoard, and CLI tools for detailed experimentation.</p>
+      <a href="#metrics">Open advanced diagnostics →</a>
+    </div>
+  </div>
+
+  <!-- TOC -->
+  <div class="toc">
+    <h3>Contents</h3>
+    <ol>
+      <li><a href="#start">Start</a> — install and run in one command</li>
+      <li><a href="#interface">Use the app</a> — Wizard, History, Train, Generate, Replay</li>
+      <li><a href="#generate">Understand results</a> — confidence, scorecard, under-the-hood</li>
+      <li><a href="#metrics">Advanced</a> — metrics, TensorBoard, CLI tools</li>
+      <li><a href="#agents">AI agents</a> — architect, reviewer, tester + UX helpers</li>
+    </ol>
+    <details class="compact" style="margin-top:10px;">
+      <summary>Show full section list</summary>
+      <ol style="margin-top:10px;">
+        <li><a href="#wizard">Wizard tab — guided flow for product owners</a></li>
+        <li><a href="#history">History tab — timeline, quality score, and export</a></li>
+        <li><a href="#train">Train tab — load or train a model</a></li>
+        <li><a href="#colours">Confidence-coloured text — reading the colours</a></li>
+        <li><a href="#chart">Entropy chart — confidence over time</a></li>
+        <li><a href="#branch">Branch — exploring the road not taken</a></li>
+        <li><a href="#verbatim">Verbatim detector — is it copying or creating?</a></li>
+        <li><a href="#score">Score tab — testing what the model learned</a></li>
+        <li><a href="#temperature">Temperature gallery — focused vs. creative</a></li>
+        <li><a href="#replay">Training replay — watch the model learn</a></li>
+        <li><a href="#attention">Attention heatmap — what is the model looking at?</a></li>
+        <li><a href="#tensorboard">TensorBoard dashboard</a></li>
+        <li><a href="#cli">Command-line tools</a></li>
+      </ol>
+    </details>
+    <p style="margin-top:14px;font-size:.82rem;color:var(--muted)">
+      This guide is kept in sync with <code>app.py</code> automatically by the
+      <strong>Architect agent</strong> (<code>.claude/agents/architect.md</code>).
+      Every time the app changes, the Architect reads both files and applies surgical edits
+      so the guide always reflects the current state of the app.
+    </p>
+  </div>
+
+  <!-- ══════════════════════ GETTING STARTED ══════════════════════ -->
+  <section id="start">
+    <h2>🚀 Getting Started</h2>
+    <div class="triplet">
+      <div class="card"><div class="card-title">What</div><p>Set up and run the app.</p></div>
+      <div class="card"><div class="card-title">Why</div><p>You need a working app before any learning flow.</p></div>
+      <div class="card"><div class="card-title">Do this next</div><p>After launch, open the Wizard tab first.</p></div>
+    </div>
+    <p>Everything starts with one command. Open <strong>Terminal</strong>
+       (<kbd>Cmd ⌘ + Space</kbd> → type <em>Terminal</em> → Enter).</p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Go to the project folder</strong>
+          <pre><code>cd ~/llm</code></pre>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Run the launcher</strong>
+          <pre><code>bash launch.sh</code></pre>
+          <p style="margin-top:8px;color:var(--muted);font-size:.92rem">
+            This automatically creates a Python environment, installs all packages,
+            and opens your browser at <code>http://127.0.0.1:7860</code>.
+          </p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Your browser opens automatically</strong>
+          <p>If it doesn't, paste <code>http://127.0.0.1:7860</code> into your browser.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <strong>Stop the app when finished</strong>
+          <p>Return to Terminal and press <kbd>Ctrl + C</kbd>.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout tip">
+      <strong>✅ Already trained?</strong> The file <code>tiny_shakespeare.pt</code> exists
+      from your last run. Click <strong>📂 Load saved model</strong> in the Train tab
+      and jump straight to Generate — no re-training needed.
+    </div>
+
+    <div class="callout note">
+      <strong>🆕 What's new (March 2, 2026)</strong><br>
+      • Generate tab now starts in <strong>Simple</strong> view (clean UI).<br>
+      • Switch to <strong>Advanced</strong> to reveal logs, Branch, and next-character peek.<br>
+      • Train and Replay also support <strong>Simple/Advanced</strong> views for reduced clutter.<br>
+      • New <strong>Under the hood</strong> panel explains model behavior in plain English.<br>
+      • New <strong>History</strong> timeline persists runs in <code>runs/run_history.json</code>.<br>
+      • New <strong>Report export</strong> writes markdown reports to <code>runs/reports/</code>.
+    </div>
+  </section>
+
+  <!-- ══════════════════════ INTERFACE OVERVIEW ══════════════════════ -->
+  <section id="interface">
+    <h2>🗺 Interface Overview</h2>
+    <div class="triplet">
+      <div class="card"><div class="card-title">What</div><p>Where each tab fits in the workflow.</p></div>
+      <div class="card"><div class="card-title">Why</div><p>Pick the right tab faster and avoid confusion.</p></div>
+      <div class="card"><div class="card-title">Do this next</div><p>Start with Wizard, then move to Generate.</p></div>
+    </div>
+    <p>The app now has <strong>eight tabs</strong>, an <strong>Audience Mode</strong> toggle (Executive vs Research), and a status bar that always shows whether a model is loaded.</p>
+
+    <div class="ui-diagram">
+┌──────────────────────────────────────────────────────────────────────┐
+│  🎭 Tiny Shakespeare GPT                                             │
+│  65-char vocab · 4 layers · 4 heads · 64-dim · device: cpu          │
+├──────────────────────────────────────────────────────────────────────┤
+│  Model Status: <span class="ui-label">✅ 216,576 params | vocab 65 | device: cpu</span>            │
+├───────┬───────┬───────┬────────┬────────┬──────────┬──────────┬──────────┤
+│ <span class="ui-tab">🧭 Wizard</span>│ <span class="ui-tab">📚 History</span>│ <span class="ui-tab">🏋️ Train</span> │ <span class="ui-tab">🎭 Gen</span> │ <span class="ui-tab">🔬 Score</span>│ <span class="ui-tab">🌡️ Temp</span> │ <span class="ui-tab">⏪ Replay</span>│ <span class="ui-tab">🔭 Attention</span>│
+└───────┴───────┴───────┴────────┴────────┴──────────┴──────────┴──────────┘</div>
+
+    <div class="feature-grid">
+      <div class="feature-card green">
+        <h4>🧭 Wizard</h4>
+        <p>Step-by-step flow: choose goal, enter minimum inputs, run, see output, and get next actions.</p>
+      </div>
+      <div class="feature-card yellow">
+        <h4>📚 History</h4>
+        <p>Timeline of runs with quality status, latest-run details, and one-click report export.</p>
+      </div>
+      <div class="feature-card">
+        <h4>🏋️ Train</h4>
+        <p>Load a saved model in one click, or train a brand-new one from scratch with a live log and loss curve. Automatically saves training checkpoints.</p>
+      </div>
+      <div class="feature-card orange">
+        <h4>🎭 Generate</h4>
+        <p>Type a prompt and watch the model write — with confidence colours, a per-token log, an entropy chart, the Branch tool, and a verbatim detector.</p>
+      </div>
+      <div class="feature-card green">
+        <h4>🔬 Score Text</h4>
+        <p>Paste any text and see how surprised the model was by each character. Reveals exactly what the model learned.</p>
+      </div>
+      <div class="feature-card yellow">
+        <h4>🌡️ Temperature Gallery</h4>
+        <p>Run the same prompt at 5 creativity levels side by side — from laser-focused to completely wild.</p>
+      </div>
+      <div class="feature-card">
+        <h4>⏪ Training Replay</h4>
+        <p>Scrub through time and see how the model's text improved step by step from gibberish to Shakespeare.</p>
+      </div>
+      <div class="feature-card orange">
+        <h4>🔭 Attention Heatmap</h4>
+        <p>See which characters the model focused on when deciding the next character — attention in plain English.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════ WIZARD TAB ══════════════════════ -->
+  <section id="wizard">
+    <h2>🧭 Wizard Tab</h2>
+    <p>The Wizard is the fastest path for product owners. It guides you through:</p>
+    <ol>
+      <li><strong>Step 1:</strong> Choose goal (Generate text, Train model, Compare styles, Understand model).</li>
+      <li><strong>Step 2:</strong> Fill only the required fields (irrelevant inputs are hidden automatically).</li>
+      <li><strong>Step 3:</strong> Click <strong>▶ Start Wizard</strong>.</li>
+      <li><strong>Step 4:</strong> Read the main output and chart.</li>
+      <li><strong>Step 5:</strong> Follow suggested next actions.</li>
+    </ol>
+    <div class="callout note">
+      <strong>Audience Mode integration.</strong> In <strong>Executive</strong> mode, wizard output stays concise.
+      In <strong>Research</strong> mode, advanced details are enabled for deeper analysis.
+    </div>
+    <p>You can also click <strong>🧾 Export latest report</strong> directly inside the Wizard after a run.</p>
+  </section>
+
+  <!-- ══════════════════════ HISTORY TAB ══════════════════════ -->
+  <section id="history">
+    <h2>📚 History Tab</h2>
+    <p>History captures recent runs (generate/train/compare/attention), including quality status and quick summaries.</p>
+    <ul>
+      <li><strong>Refresh history</strong> updates timeline and latest run preview.</li>
+      <li><strong>Export latest report</strong> writes a markdown report to <code>runs/reports/</code>.</li>
+      <li>Run history persists across restarts in <code>runs/run_history.json</code>.</li>
+    </ul>
+    <div class="callout tip">
+      <strong>Quality scorecard.</strong> Generate runs include an automatic scorecard (Readable / Repetitive / Too random / Needs tuning)
+      plus a guardrail tip for the next run.
+    </div>
+  </section>
+
+  <!-- ══════════════════════ TRAIN TAB ══════════════════════ -->
+  <section id="train">
+    <h2>🏋️ Train Tab</h2>
+    <p><strong>View mode:</strong> Train now includes <strong>Simple</strong> and <strong>Advanced</strong> views. Simple hides extra controls; Advanced shows learning-rate control and full training log.</p>
+
+    <div class="ui-diagram">
+┌─ Settings ──────────────────┐  ┌─ Loss Curve (live, dark theme) ──┐
+│                             │  │                                  │
+│  Training Steps  [───●──]   │  │  2.6 ╮                          │
+│  2000                       │  │  2.0  ╲  train ──               │
+│                             │  │  1.7   ╰──────────  val ···     │
+│  Learning Rate  [slider]    │  │      0      1000    2000        │
+│  1e-5 ────●──────── 1e-3    │  └──────────────────────────────────┘
+│  (default 0.0003)           │
+│  [📂 Load saved model]      │
+│  [🚀 Train from scratch]    │
+└─────────────────────────────┘
+┌─ Training Log ──────────────────────────────────────────────────────┐
+│   Step    Train      Val    GNorm    Time                           │
+│  ──────────────────────────────────────────────                     │
+│    200   2.6596   2.6595    0.54   19.1s                           │
+│    400   2.5024   2.5079    0.77   37.8s  ...                      │
+└─────────────────────────────────────────────────────────────────────┘</div>
+
+    <h3>Option A — Load the saved model (fastest)</h3>
+    <p>Click <strong>📂 Load saved model</strong>. Reads <code>tiny_shakespeare.pt</code>
+       from disk in under a second. Status bar turns green — jump to Generate.</p>
+
+    <h3>Option B — Train from scratch</h3>
+    <table>
+      <thead><tr><th>Steps</th><th>Time on CPU</th><th>Quality</th></tr></thead>
+      <tbody>
+        <tr><td>500</td><td>~50 sec</td><td>Barely readable</td></tr>
+        <tr><td>2 000</td><td>~3 min</td><td>Recognisable Shakespeare structure</td></tr>
+        <tr><td>5 000</td><td>~8 min</td><td>Best quality this model can reach</td></tr>
+      </tbody>
+    </table>
+
+    <p>The <strong>Learning Rate</strong> is set with a slider (range 1e-5 to 1e-3, default 0.0003).
+       Leave it at the default unless you are deliberately experimenting — the value is automatically
+       clamped to a safe range so you cannot accidentally break training.</p>
+
+    <div class="callout warn">
+      <strong>⚠️ Don't click Train twice.</strong>  If training is already running and you click
+      <strong>🚀 Train from scratch</strong> again, the app will show a warning and ignore the
+      second click. Waiting for the current run to finish before starting a new one is always safest.
+    </div>
+
+    <h3>Reading the training log</h3>
+    <table>
+      <thead><tr><th>Column</th><th>Meaning</th><th>Healthy sign</th></tr></thead>
+      <tbody>
+        <tr><td><code>Train</code></td><td>Loss on training data</td><td>Slopes steadily downward</td></tr>
+        <tr><td><code>Val</code></td><td>Loss on held-out data</td><td>Tracks Train closely — big gap = overfitting</td></tr>
+        <tr><td><code>GNorm</code></td><td>Gradient size before clipping</td><td>0.5 – 2.5 is normal; occasional spikes are fine</td></tr>
+        <tr><td><code>Time</code></td><td>Elapsed seconds</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ══════════════════════ GENERATE TAB ══════════════════════ -->
+  <section id="generate">
+    <h2>🎭 Generate Tab</h2>
+    <div class="triplet">
+      <div class="card"><div class="card-title">What</div><p>Create text from your prompt.</p></div>
+      <div class="card"><div class="card-title">Why</div><p>Test creativity and quality quickly.</p></div>
+      <div class="card"><div class="card-title">Do this next</div><p>If quality drops, use Auto-fix settings.</p></div>
+    </div>
+    <p><strong>UI simplified:</strong> the Generate tab now starts in <strong>Simple</strong> view. Switch to <strong>Advanced</strong> view when you want step-by-step logs, Branch controls, and peek tools.</p>
+    <p>After each generation, the app now appends a <strong>Quality scorecard</strong> with a plain-English verdict and one guardrail tip.</p>
+    <p>It also adds two plain-English learning cards: <strong>Explain this chart</strong> (quick chart insights) and <strong>Learning diary</strong> (auto summary + next recommended step).</p>
+    <p>New: <strong>Compare with last run</strong> shows what improved/regressed, and <strong>Apply recommended fix</strong> updates settings in one click.</p>
+
+    <div class="callout note">
+      <strong>ℹ️ Character-level model.</strong>  This is a character-level model — it predicts
+      one letter at a time, not whole words. ChatGPT predicts word-pieces called "tokens".
+      That's why the step-by-step log here shows every single character decision — each row
+      in the log is the model choosing one letter.
+    </div>
+
+    <div class="ui-diagram">
+┌─ Controls ──────────────────┐  ┌─ Step-by-step log ────────────────┐
+│                             │  │  Generating from: "ROMEO:"        │
+│  Prompt                     │  │  ──────────────────────────────   │
+│  ┌───────────────────────┐  │  │  Character 1 of 150               │
+│  │ ROMEO:                │  │  │  The model just read: "ROMEO:"    │
+│  └───────────────────────┘  │  │  How sure is it?  almost certain  │
+│                             │  │                                   │
+│  Temperature     [───●] 1.0 │  │  What it was considering:         │
+│  Characters      [───●] 150 │  │   ↵ newline  █████████  97.9% ✓  │
+│  Candidates      [───●]   5 │  │   · space                  1.9%  │
+│  ☑ Verbose log              │  └───────────────────────────────────┘
+│  [✨ Generate]              │  ┌─ Generated text (colour = conf) ──┐
+│                             │  │  ROMEO:                           │
+│ ── Branch ──────────────── │  │  <span style="background:#4ade8044;border-radius:3px;padding:1px 3px">T</span><span style="background:#4ade8044;border-radius:3px;padding:1px 3px">h</span><span style="background:#4ade8044;border-radius:3px;padding:1px 3px">e</span> <span style="background:#fbbf2444;border-radius:3px;padding:1px 3px">w</span><span style="background:#f8717144;border-radius:3px;padding:1px 3px">o</span><span style="background:#4ade8044;border-radius:3px;padding:1px 3px">r</span><span style="background:#4ade8044;border-radius:3px;padding:1px 3px">d</span>...                    │
+│  Branch from char  [──●] 10 │  └───────────────────────────────────┘
+│  [🌿 Branch from here]      │  ┌─ Confidence over time ────────────┐
+│                             │  │  uncertainty ╭─╮ ╭──╮            │
+└─────────────────────────────┘  │              ╰─╯ ╰──╯            │
+                                 │  confidence  ╭──────╮            │
+                                 └───────────────────────────────────┘</div>
+
+    <h3>Controls</h3>
+    <table>
+      <thead><tr><th>Control</th><th>What it does</th><th>Try</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Prompt</strong></td>
+          <td>The seed text the model continues. Can be a character name, a partial line, or blank.</td>
+          <td><code>ROMEO:</code> · <code>To be or</code> · <code>JULIET:\n</code></td>
+        </tr>
+        <tr>
+          <td><strong>Temperature</strong></td>
+          <td>Controls randomness. Low = predictable. High = creative but messier.
+              The slider shows: <em>0.3 = focused/repetitive · 1.0 = balanced · 1.8 = wild/chaotic</em></td>
+          <td>0.7 (focused) · 1.0 (default) · 1.4 (adventurous)</td>
+        </tr>
+        <tr>
+          <td><strong>Characters</strong></td>
+          <td>How many characters to generate.</td>
+          <td>50 (quick) · 150 (default) · 400 (long)</td>
+        </tr>
+        <tr>
+          <td><strong>Candidates shown</strong></td>
+          <td>How many alternative options appear in the verbose log per step. Does not change what the model generates — only what is displayed in the log.</td>
+          <td>3 (clean) · 5 (default) · 10 (see everything)</td>
+        </tr>
+        <tr>
+          <td><strong>Verbose log</strong></td>
+          <td>Ticked = full per-character breakdown in the log. Unticked = shows a compact
+              <em>"Generating… X of Y characters"</em> progress counter while the model writes.</td>
+          <td>Tick to study the model. Untick for clean reading.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout tip">
+      <strong>💡 Keyboard shortcut.</strong>  Press <kbd>Ctrl + Enter</kbd> while the Prompt box is
+      focused to trigger generation instantly — no need to click the Generate button.
+    </div>
+
+    <h3>Reading the step-by-step log</h3>
+    <pre><code>──────────────────────────────────────────────
+  Character 1 of 150
+──────────────────────────────────────────────
+
+  The model just read:  "ROMEO:"
+  How sure is it?       <span class="gr">almost certain</span>
+
+  What it was considering:
+
+    ↵ newline         █████████████████████    97.9%  ✓ picked
+    · space                                     1.9%
+    ' apostrophe                                0.1%
+
+  ➜  Chose ↵ newline  —  <span class="gr">its top pick — very confident</span></code></pre>
+
+    <table>
+      <thead><tr><th>Part of the log</th><th>What it means</th></tr></thead>
+      <tbody>
+        <tr><td><code>The model just read: "…"</code></td><td>The last ~20 characters of context the model used to make its decision.</td></tr>
+        <tr><td><code>How sure is it?</code></td><td>Plain-English description of the model's uncertainty at this step.</td></tr>
+        <tr><td>The list of options + bars</td><td>Top candidates ranked by probability. Bar length = probability. <code>✓ picked</code> = chosen token.</td></tr>
+        <tr><td><code>★ 'x' ← chosen (rank N)</code></td><td>Appears when the model picked a token <em>outside</em> the displayed top-k — temperature made it adventurous.</td></tr>
+        <tr><td><code>➜ Chose … — comment</code></td><td>One-sentence verdict: was it confident, hedging, or a surprise?</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout tip">
+      <strong>💡 End-of-generation summary</strong> appears after all characters are written.
+      It tells you: how confident the model was overall, how often it chose its #1 guess,
+      which character it was most sure about, and which was the hardest decision.
+    </div>
+  </section>
+
+  <!-- ══════════════════════ COLOUR MAP ══════════════════════ -->
+  <section id="colours">
+    <h2>🎨 Confidence-Coloured Text</h2>
+
+    <p>
+      Every character in the generated text gets a background colour showing
+      how confident the model was when it chose that character.
+      You can read the entire generation at a glance — no log needed.
+    </p>
+
+    <h3>The colour scale</h3>
+    <div class="color-demo">
+      <span class="swatch" style="background:#dc504044">dc  &lt;15%</span>
+      <span class="swatch" style="background:#dc784044">de  15–30%</span>
+      <span class="swatch" style="background:#dcc82444">ar  30–50%</span>
+      <span class="swatch" style="background:#8cd43644">e   50–65%</span>
+      <span class="swatch" style="background:#3cde7e44">st  65–80%</span>
+      <span class="swatch" style="background:#3cde7e88"> !  &gt;80%</span>
+    </div>
+
+    <table>
+      <thead><tr><th>Colour</th><th>Confidence</th><th>What it means</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span style="display:inline-block;width:14px;height:14px;background:#dc5040;border-radius:3px;vertical-align:middle"></span> Deep red</td>
+          <td>&lt; 15%</td>
+          <td>Model was genuinely guessing — many characters were equally plausible</td>
+        </tr>
+        <tr>
+          <td><span style="display:inline-block;width:14px;height:14px;background:#dc9040;border-radius:3px;vertical-align:middle"></span> Orange</td>
+          <td>15 – 30%</td>
+          <td>Low confidence — the model leaned this way but wasn't convinced</td>
+        </tr>
+        <tr>
+          <td><span style="display:inline-block;width:14px;height:14px;background:#dcc824;border-radius:3px;vertical-align:middle"></span> Yellow</td>
+          <td>30 – 60%</td>
+          <td>Moderate confidence — a reasonable guess with real competition</td>
+        </tr>
+        <tr>
+          <td><span style="display:inline-block;width:14px;height:14px;background:#6cd43a;border-radius:3px;vertical-align:middle"></span> Light green</td>
+          <td>60 – 80%</td>
+          <td>Fairly confident — this was clearly the best option</td>
+        </tr>
+        <tr>
+          <td><span style="display:inline-block;width:14px;height:14px;background:#3cde7e;border-radius:3px;vertical-align:middle"></span> Bright green</td>
+          <td>&gt; 80%</td>
+          <td>Very confident — almost no doubt about the next character</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>What patterns to look for</h3>
+    <ul>
+      <li><strong>Green streaks</strong> — the model is completing a familiar word or phrase it has seen many times in training</li>
+      <li><strong>Red at the start of a line</strong> — the model is uncertain which character speaks next; many are plausible</li>
+      <li><strong>Yellow/orange in the middle of a word</strong> — the model has narrowed things down but still has real alternatives</li>
+      <li><strong>Hover over any character</strong> to see the exact confidence percentage in a tooltip</li>
+    </ul>
+
+    <div class="callout note">
+      <strong>ℹ️ Compare temperatures.</strong>  Generate the same prompt twice — once at 0.6, once at 1.4.
+      The low-temperature run will be mostly green (confident, repetitive).
+      The high-temperature run will have more red and orange (adventurous, varied).
+    </div>
+  </section>
+
+  <!-- ══════════════════════ ENTROPY CHART ══════════════════════ -->
+  <section id="chart">
+    <h2>📈 Entropy Chart</h2>
+
+    <p>
+      Below the coloured text is a two-panel chart that shows how the model's
+      uncertainty and confidence changed across the full generation, step by step.
+      It updates live every 15 characters as generation proceeds.
+    </p>
+
+    <div class="ui-diagram">
+  Uncertainty (bits)
+  5.5 ┤
+  4.0 ┤     ╭─╮      ╭╮  ╭╮
+  2.5 ┤ ╭─╮ │ ╰──────╯╰──╯╰──── · · · avg 2.5
+  1.0 ┤─╯ ╰─╯
+  0.0 ┤
+      └──────────────────────────────────── character #
+
+  Confidence (%)
+  100 ┤──╮ ╭──────────────────────── · · · avg 38%
+   60 ┤  ╰─╯  ╭──╮   ╭──╮
+   20 ┤        ╰──╯   ╰──╯
+    0 ┤
+      └──────────────────────────────────── character #   </div>
+
+    <h3>Top panel — Uncertainty (bits)</h3>
+    <ul>
+      <li><strong>High spikes</strong> — the model had many equally-plausible options (e.g. first letter after a newline)</li>
+      <li><strong>Low valleys</strong> — the model was near-certain (e.g. completing <code>wor</code> → <code>d</code>)</li>
+      <li>The dashed line shows the <strong>average</strong> for this generation</li>
+    </ul>
+
+    <h3>Bottom panel — Confidence (%)</h3>
+    <p>This is the mirror image. Where uncertainty is high, confidence is low.
+       Watch how they oscillate: the model is uncertain at word starts, then gains confidence as it builds familiar letter sequences.</p>
+
+    <div class="callout tip">
+      <strong>💡 The rhythm of writing.</strong>  You'll notice peaks of uncertainty at the start of every new word or line,
+      then a rapid drop as the model recognises a familiar pattern. This is exactly how a trained language model
+      builds structure: uncertainty about <em>what</em> to say, then certainty about <em>how</em> to finish it.
+    </div>
+  </section>
+
+  <!-- ══════════════════════ BRANCH ══════════════════════ -->
+  <section id="branch">
+    <h2>🌿 Branch — The Road Not Taken</h2>
+
+    <p>
+      After generating text, the <strong>Branch</strong> tool lets you rewind the model to
+      any character in the sequence, then generate a completely different continuation from that exact point.
+      Same context, new random sampling — like replaying a decision and seeing a different outcome.
+    </p>
+
+    <div class="callout note">
+      <strong>ℹ️ What "branching" means.</strong>  Language models are probabilistic.
+      At every step, multiple characters were plausible — the model just picked one randomly
+      (weighted by probability). Branch lets you re-roll that dice and see what else could have happened.
+    </div>
+
+    <h3>How to use it</h3>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Run a generation first</strong>
+          <p>Click ✨ Generate with any prompt. The Branch section below is greyed out until a generation has been stored.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Pick the branch point</strong>
+          <p>Use the <strong>"Branch from character number"</strong> slider. Think of it as saying
+             "rewind to just before character 10 was chosen, and try again."
+             <br>Good values to try: early steps (3–10) for very different paths,
+             later steps (50+) for small divergences.</p>
+          <p>If you choose a step beyond the length of the generated text, the app
+             automatically clamps to the last available step and tells you in the Branch log:
+             <em>"you selected N — clamped to end of generated text"</em>.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Click 🌿 Branch from here</strong>
+          <p>The model generates 120 new characters from that context.
+             The branch output appears below with its own coloured text and confidence chart.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <strong>Compare original vs branch</strong>
+          <p>The original generation is still visible above. Notice how the two paths diverge —
+             the branch text starts from the same context but quickly becomes completely different.
+             Same model, same training, different random moment.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout tip">
+      <strong>💡 Best experiment.</strong>  Branch from step 1 several times in a row.
+      Each time you'll get a completely different Shakespeare-style passage from the same prompt.
+      This directly demonstrates why language model outputs are never identical — and why temperature matters.
+    </div>
+  </section>
+
+  <!-- ══════════════════════ VERBATIM DETECTOR ══════════════════════ -->
+  <section id="verbatim">
+    <h2>🔍 Verbatim Detector</h2>
+
+    <p>
+      After each generation, a collapsible accordion labelled
+      <strong>"🔍 Verbatim check — is this copied or created?"</strong> appears inside the
+      Generate tab, just below the confidence-coloured output. Click it to expand the
+      <strong>Verbatim Detector</strong>, which answers one of the most interesting questions
+      in AI: <em>"Is the model creating something new, or just copying what it memorised?"</em>
+    </p>
+
+    <div class="ui-diagram">
+┌─ Verbatim check ──────────────────────────────────────────────────┐
+│                                                                   │
+│  <span style="color:#a78bfa">To be, or not to</span> <span style="color:#22d3ee">be, that</span> <span style="color:#a78bfa"> is the question</span>           │
+│                                                                   │
+│  Purple/blue = seen in training data                              │
+│  Teal/cyan   = novel — the model invented this                    │
+│                                                                   │
+│  62% of this text appears in the original Shakespeare.            │
+└───────────────────────────────────────────────────────────────────┘</div>
+
+    <h3>How it works</h3>
+    <p>
+      At startup, the app indexes every 6-character sequence from the 1.1 million-character
+      training text. When you generate text, each 6-character window in the output is checked
+      against this index. If it matches, those characters are highlighted in purple — the model
+      is reproducing something it literally read during training. Teal characters are genuinely
+      new combinations the model assembled itself.
+    </p>
+
+    <div class="callout note">
+      <strong>ℹ️ Business analogy.</strong>  Think of the training data as a library the model
+      has read. Purple text is like quoting a book word-for-word. Teal text is the model's own
+      synthesis — it learned the style and patterns, then applied them to something new.
+      Most LLMs produce a mix of both.
+    </div>
+
+    <h3>What to look for</h3>
+    <table>
+      <thead><tr><th>Pattern</th><th>What it means</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>High % purple (70–100%)</td>
+          <td>The model is heavily reciting training text — useful to know when checking for memorisation</td>
+        </tr>
+        <tr>
+          <td>Low % purple (0–30%)</td>
+          <td>The model is being more creative — especially at higher temperatures</td>
+        </tr>
+        <tr>
+          <td>Purple in names / stage directions</td>
+          <td>Common Shakespeare phrases are well memorised — "ROMEO:", "Enter", "Exeunt" will almost always be purple</td>
+        </tr>
+        <tr>
+          <td>Teal in the middle of dialogue</td>
+          <td>The model is interpolating — it learned structure but is generating new words</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout tip">
+      <strong>💡 Experiment.</strong>  Generate the same prompt at temperature 0.3 (Focused)
+      and again at 1.8 (Wild). The focused version will typically be more purple — the model
+      plays it safe and sticks to memorised patterns. The wild version produces more teal.
+    </div>
+  </section>
+
+  <!-- ══════════════════════ SCORE TAB ══════════════════════ -->
+  <section id="score">
+    <h2>🔬 Score Text Tab</h2>
+
+    <p>
+      This tab answers the question: <em>"What has the model actually learned?"</em>
+      Paste any text and the model predicts each character in sequence,
+      then shows you how confident it was about each one.
+      The tab scores up to <strong>200 characters</strong> — text beyond that is trimmed automatically.
+    </p>
+
+    <div class="ui-diagram">
+┌─ Controls ───────────────────┐  ┌─ Character confidence ────────────┐
+│                              │  │                                   │
+│  ┌────────────────────────┐  │  │  <span style="opacity:.4">T</span><span style="background:#4ade8044;border-radius:3px;padding:1px 3px">o</span> <span style="background:#fbbf2444;border-radius:3px;padding:1px 3px">b</span><span style="background:#4ade8044;border-radius:3px;padding:1px 3px">e</span><span style="opacity:.4">,</span> <span style="background:#f8717144;border-radius:3px;padding:1px 3px">o</span><span style="background:#4ade8044;border-radius:3px;padding:1px 3px">r</span> <span style="background:#f8717144;border-radius:3px;padding:1px 3px">n</span><span style="background:#4ade8044;border-radius:3px;padding:1px 3px">o</span><span style="background:#4ade8044;border-radius:3px;padding:1px 3px">t</span>...             │
+│  │ To be, or not to be,  │  │  │                                   │
+│  │ that is the question  │  │  └───────────────────────────────────┘
+│  └────────────────────────┘  │  ┌─ Confidence per character ────────┐
+│                              │  │  100%│ ██  ██  ██       ██  ██   │
+│  [🔬 Score this text]        │  │   60%│    ██  ██  ██  ██         │
+│                              │  │   20%│          ██  ██           │
+│  What the model thinks       │  │      └──────────────────────────  │
+│  about this text:            │  └───────────────────────────────────┘
+│  Perplexity: 4.6 / max ~65   │
+│  Avg confidence: 39.0%       │
+│  Most surprising: pos 6…     │
+└──────────────────────────────┘</div>
+
+    <h3>How to use it</h3>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Paste any text into the box</strong>
+          <p>Start with a real Shakespeare line, then try something else to compare.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Click 🔬 Score this text</strong>
+          <p>The model reads left to right, predicting each character from the ones before it.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Read the coloured output</strong>
+          <p>Green characters = the model saw them coming. Red = it was surprised.
+             Hover over any character for the exact confidence percentage.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <strong>Check the "What the model thinks about this text" box</strong>
+          <p>Shows perplexity (plain English explanation included), average confidence,
+             and which characters surprised the model most.</p>
+        </div>
+      </div>
+    </div>
+
+    <h3>What to try</h3>
+    <table>
+      <thead><tr><th>Text to paste</th><th>What you'll learn</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>A real Shakespeare line, e.g. <em>"All the world's a stage"</em></td>
+          <td>The model should score mostly green — it has seen this style thousands of times</td>
+        </tr>
+        <tr>
+          <td>A sentence you write yourself</td>
+          <td>Modern grammar = more red; the model was trained only on 16th-century English</td>
+        </tr>
+        <tr>
+          <td>Random keyboard mashing: <em>"xkzjpqw"</em></td>
+          <td>Entirely red — the model finds this completely alien</td>
+        </tr>
+        <tr>
+          <td>A repeated phrase: <em>"the the the the"</em></td>
+          <td>After the first "the", subsequent ones score green — the model learned repetition patterns</td>
+        </tr>
+        <tr>
+          <td>Your own name</td>
+          <td>Shows whether letter combinations in your name appear in Shakespeare</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Understanding Perplexity</h3>
+    <div class="card">
+      <p>
+        <strong>Perplexity</strong> is a single number that summarises how surprised the model
+        was by the whole text. Lower is better — it means the model predicted the text well.
+        The app shows perplexity as <em>"X out of max ~65"</em> — because this model has a
+        65-character vocabulary, the worst possible perplexity is 65 (complete confusion
+        across every character). Anything well below that means learning has happened.
+      </p>
+      <table>
+        <thead><tr><th>Perplexity (out of max ~65)</th><th>Plain English</th></tr></thead>
+        <tbody>
+          <tr><td>1 – 3</td><td>The model knows this text very well — almost memorised it</td></tr>
+          <tr><td>3 – 6</td><td>The model has a reasonable grasp of it</td></tr>
+          <tr><td>6 – 12</td><td>Parts of this are unfamiliar</td></tr>
+          <tr><td>12 – 30</td><td>This text surprises the model a lot</td></tr>
+          <tr><td>30+</td><td>The model finds this nearly incomprehensible</td></tr>
+          <tr><td>~65</td><td>Maximum possible — equivalent to random guessing across all 65 characters</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══════════════════════ TEMPERATURE GALLERY ══════════════════════ -->
+  <section id="temperature">
+    <h2>🌡️ Temperature Gallery</h2>
+
+    <p>
+      <strong>Temperature</strong> is the single most important setting in any AI language model.
+      It controls how adventurous the model is. Low temperature = safe and predictable.
+      High temperature = wild and creative. The Temperature Gallery lets you <em>see</em> this
+      difference instantly by running the same prompt at five settings simultaneously.
+    </p>
+
+    <div class="ui-diagram">
+┌─ Temperature Gallery ─────────────────────────────────────────────┐
+│                                                                   │
+│  Prompt: [To be, or not           ]   Length: [──●──] 80         │
+│                                                                   │
+│  [ 🔥 Compare all 5 temperatures ]                               │
+│                                                                   │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐           │
+│  │ 🌡️ 0.3       │  │ 🌡️ 0.6       │  │ 🌡️ 1.0       │  ...     │
+│  │ Focused      │  │ Careful      │  │ Balanced     │           │
+│  │ ▓▓▓▓ avg 82% │  │ ▓▓▓ avg 65%  │  │ ▓▓ avg 47%   │           │
+│  │ To be, or    │  │ To be, and   │  │ To fell, or  │           │
+│  │ not to be,   │  │ what if the  │  │ shalt with   │           │
+│  └──────────────┘  └──────────────┘  └──────────────┘           │
+└───────────────────────────────────────────────────────────────────┘</div>
+
+    <h3>The five temperature settings</h3>
+    <table>
+      <thead><tr><th>Setting</th><th>Label</th><th>What happens</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>0.3</strong></td>
+          <td>Focused</td>
+          <td>The model almost always picks its top choice. Output is repetitive but grammatically safe.</td>
+        </tr>
+        <tr>
+          <td><strong>0.6</strong></td>
+          <td>Careful</td>
+          <td>Some variety creeps in. The model occasionally takes a less-likely path.</td>
+        </tr>
+        <tr>
+          <td><strong>1.0</strong></td>
+          <td>Balanced</td>
+          <td>The model's natural state. Probabilities are used as-is — the sweet spot for most use cases.</td>
+        </tr>
+        <tr>
+          <td><strong>1.4</strong></td>
+          <td>Creative</td>
+          <td>Less-likely characters get a bigger chance. Outputs are more surprising and varied.</td>
+        </tr>
+        <tr>
+          <td><strong>1.8</strong></td>
+          <td>Wild</td>
+          <td>Low-probability characters can now win. Outputs become erratic but occasionally poetic.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout note">
+      <strong>ℹ️ Business analogy.</strong>  Temperature is like the confidence dial in a meeting.
+      At 0.3, the model is a cautious consultant who always recommends the safest option.
+      At 1.8, it's a brainstorming session where any idea — brilliant or bizarre — can win.
+      Most production AI systems run somewhere between 0.6 and 1.2.
+    </div>
+
+    <div class="callout tip">
+      <strong>💡 Lower confidence does not mean worse writing.</strong>  Each card in the gallery
+      shows an average confidence badge. As temperature rises the badge drops — but that doesn't
+      mean the output is bad. Lower confidence at higher temperatures means the model is exploring
+      more options. Creative writing often benefits from that exploration.
+    </div>
+
+    <h3>How to use it</h3>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Load a model first</strong>
+          <p>Go to the Train tab and click <strong>📂 Load saved model</strong>. The status bar must turn green.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Type a prompt and set length</strong>
+          <p>Keep the prompt short (2–8 words). Use the slider to set how long each card's output should be (20–150 characters).</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Click 🔥 Compare all 5 temperatures</strong>
+          <p>Cards appear one by one as each temperature finishes. Each card shows confidence-coloured text and an average confidence badge.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <strong>Compare the cards side by side</strong>
+          <p>Watch how the same starting words lead to completely different completions at different temperatures. Notice how average confidence drops as temperature rises.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════ TRAINING REPLAY ══════════════════════ -->
+  <section id="replay">
+    <h2>⏪ Training Replay</h2>
+    <p><strong>View mode:</strong> Replay now includes <strong>Simple</strong> and <strong>Advanced</strong> views. Simple keeps the screen clean; Advanced shows progress log and perplexity chart.</p>
+
+    <p>
+      Training Replay answers the most fundamental question about machine learning:
+      <em>"How does a model go from zero to Shakespeare?"</em>
+      It loads saved model snapshots from different points in training and shows you
+      how the output evolved — from random gibberish at step 1 to coherent text by step 1000.
+    </p>
+
+    <div class="ui-diagram">
+┌─ Training Replay ─────────────────────────────────────────────────┐
+│                                                                   │
+│  Test prompt: [To be                    ]                         │
+│  [ ▶ Run Replay ]                                                 │
+│                                                                   │
+│  ┌─ Perplexity over training steps ─────────────────────────────┐ │
+│  │  60 ╮                                                        │ │
+│  │  40  ╲                                                       │ │
+│  │  20   ╲_________                                             │ │
+│  │   5            ╰───────────────────                          │ │
+│  │     step: 1   100   200  400   600   800   1000              │ │
+│  └──────────────────────────────────────────────────────────────┘ │
+│                                                                   │
+│  [Step 1 · random]  [Step 100 · early]  [Step 500 · getting there] │
+│  "xKzQmWj..."       "Thit and the..."  "To be, and what..."      │
+└───────────────────────────────────────────────────────────────────┘</div>
+
+    <h3>Understanding the perplexity chart</h3>
+    <p>
+      The chart shows <strong>perplexity</strong> on the y-axis and <strong>training step</strong>
+      on the x-axis. Perplexity measures how surprised the model is by standard Shakespeare text —
+      lower means less surprised, which means it has learned more. Watch the dramatic drop
+      in the first 200 steps — that's when the model goes from random to having learned
+      basic letter frequencies.
+    </p>
+    <div class="callout note">
+      <strong>ℹ️ What perplexity numbers mean here.</strong>
+      A perplexity of 65 means the model is equally uncertain between all 65 characters at
+      every step — like rolling a 65-sided die. At perplexity 5, it's down to 5 likely choices
+      for the next character. A well-trained Shakespeare model reaches around 3–6.
+      Watch the chart fall from ~65 toward that range as the replay progresses.
+    </div>
+
+    <div class="callout note">
+      <strong>ℹ️ Business analogy.</strong>  Imagine a new employee reading your company's
+      entire document library. On day 1 (step 1), they produce word-salad. By week 1 (step 100),
+      they're stringing sentences together. By month 1 (step 1000), they write convincingly
+      in your company's style. The perplexity chart is their "how lost do I feel?" score over time.
+    </div>
+
+    <h3>How to use it</h3>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>First-time setup (automatic)</strong>
+          <p>On first click, if no training checkpoints exist, the app automatically runs a
+          quick 1,000-step training and saves snapshots every 100 steps. This takes about
+          2 minutes. You will see a progress message — just wait.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Type a test prompt</strong>
+          <p>This prompt will be fed to every checkpoint in turn. "To be" or "ROMEO" works well.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Click ▶ Run Replay</strong>
+          <p>Checkpoints load one by one. The perplexity chart updates and sample cards appear for each step.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <strong>Read the sample cards</strong>
+          <p>Each card shows the model's output at that training stage, coloured by confidence.
+          Watch confidence colours shift from mostly red (low confidence = random guessing)
+          to mostly green as the model learns.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout tip">
+      <strong>💡 Pro tip.</strong>  If you train a new model from scratch in the Train tab
+      (with 2000 or 5000 steps), the app saves checkpoints automatically at steps
+      100, 250, 500, 750, 1000, 1500, 2000, 3000, 4000, and 5000. Next time you run Replay,
+      it will use those richer checkpoints for a much more detailed learning curve.
+    </div>
+  </section>
+
+  <!-- ══════════════════════ ATTENTION HEATMAP ══════════════════════ -->
+  <section id="attention">
+    <h2>🔭 Attention Heatmap</h2>
+
+    <div class="callout note">
+      <strong>ℹ️ Why does attention matter?</strong>  Before attention was invented, language
+      models read text one character at a time and quickly forgot what came before. Attention
+      lets the model "look back" and focus on whichever earlier characters are most relevant
+      — like being able to re-read a sentence before finishing it. This is what makes
+      transformers (and ChatGPT) dramatically better than older AI models. The heatmap below
+      makes that invisible mechanism visible.
+    </div>
+
+    <p>
+      The Attention Heatmap reveals one of the most important mechanisms inside any modern AI model:
+      <strong>attention</strong>. When the model decides what character comes next, it doesn't
+      look at all previous characters equally — it <em>focuses</em> on certain ones more than others.
+      This tab lets you see exactly where that focus lands.
+    </p>
+
+    <div class="ui-diagram">
+┌─ Attention Heatmap ───────────────────────────────────────────────┐
+│                                                                   │
+│  Context: [To be, or not to be]    [ 🔭 Analyse attention ]      │
+│                                                                   │
+│  ┌─ Which characters did the model focus on? ───────────────────┐ │
+│  │  T   o   ' '  b   e   ,   ' '  o   r   ' '  n   o   t  ...  │ │
+│  │  ░░  ░░░ ░    ██  ███ ░   ░░   ░░  ███ ░    ░░  ██  ░░  ... │ │
+│  │      bright = high attention                                  │ │
+│  └──────────────────────────────────────────────────────────────┘ │
+│                                                                   │
+│  Layer 1  ┌───────────┐   Layer 2  ┌───────────┐                 │
+│           │█░░░░░░░░░░│            │░░░░░░░░░█ │                 │
+│           │░█░░░░░░░░░│            │░░░░░░░░░█ │                 │
+│           │░░█░░░░░░░░│            │░░░░░░░░░█ │                 │
+│           └───────────┘            └───────────┘                 │
+│  "When deciding next, the model focused most on 'e' (34%) ..."   │
+└───────────────────────────────────────────────────────────────────┘</div>
+
+    <h3>What you're seeing</h3>
+    <table>
+      <thead><tr><th>Panel</th><th>What it shows</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Attention strip</strong> (top)</td>
+          <td>Each character from your context as a vertical bar. Taller / brighter bars = the model paid more attention here when predicting the next character. Averaged across all 4 layers and all 4 heads.</td>
+        </tr>
+        <tr>
+          <td><strong>Layer heatmaps</strong> (bottom grid)</td>
+          <td>One panel per transformer layer. Rows = the character being predicted, columns = characters it can look back at. The heatmap uses a <strong>blue colour scale</strong> — darker/brighter blue = stronger attention connection.</td>
+        </tr>
+        <tr>
+          <td><strong>Summary sentence</strong></td>
+          <td>Plain English: "When deciding the next character, the model focused most on 'X' (NN%) and 'Y' (NN%)."</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout note">
+      <strong>ℹ️ Business analogy.</strong>  Attention is like a manager reviewing a document.
+      They don't read every word with equal care — they skim most of it but pay close attention
+      to key words (the subject, the action, the deadline). The attention heatmap shows you
+      which "key words" the model is tracking when it makes each decision.
+    </div>
+
+    <h3>How to use it</h3>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Load a model first</strong>
+          <p>Go to the Train tab and click <strong>📂 Load saved model</strong>.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Type a context string</strong>
+          <p>Anything from 4–18 characters. Longer inputs use only the last 18 characters.
+          Try <code>To be, or not</code> or a character name like <code>ROMEO:\nO</code>.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Click 🔭 Analyse attention</strong>
+          <p>The strip and 4-panel heatmap appear within a second. Read the summary sentence first.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <strong>Explore layer differences</strong>
+          <p>Notice how earlier layers (Layer 1–2) often show a diagonal pattern — each position
+          looks at its immediate neighbours. Later layers (Layer 3–4) often have richer, longer-range
+          connections — the model is integrating context from far away.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout tip">
+      <strong>💡 Best experiment.</strong>  Try the context <code>JULIET:\n</code> and compare to
+      <code>ROMEO:\n</code>. The model has learned that different characters follow different
+      names — watch how the attention patterns differ.
+    </div>
+  </section>
+
+  <!-- ══════════════════════ METRICS ══════════════════════ -->
+  <section id="metrics" class="advanced-only">
+    <h2>📐 Metrics in Plain English</h2>
+
+    <div class="card">
+      <div class="card-title">Entropy (bits) — "How many options does the model think it has?"</div>
+      <p>Entropy measures how spread out the probability is across all 65 possible next characters.</p>
+      <table>
+        <thead><tr><th>Value</th><th>Label in the app</th><th>Real example</th></tr></thead>
+        <tbody>
+          <tr><td>0 – 0.5</td><td>almost certain</td><td>After <code>wor</code> → <code>d</code> is almost inevitable</td></tr>
+          <tr><td>0.5 – 1.5</td><td>very confident</td><td>After <code>ROMEO:</code> → newline is strongly expected</td></tr>
+          <tr><td>1.5 – 2.5</td><td>fairly sure</td><td>After a space → a few common letters compete</td></tr>
+          <tr><td>2.5 – 3.2</td><td>a bit uncertain</td><td>Start of a new word — many letters are plausible</td></tr>
+          <tr><td>3.2 – 4.0</td><td>lots of options</td><td>First character on a new line — any speaker could appear</td></tr>
+          <tr><td>4.0+</td><td>hard to decide</td><td>The model has barely learned what comes here</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Confidence (%) — "How sure was the model about its actual pick?"</div>
+      <p>Simply the probability the model gave to the character it actually chose.</p>
+      <ul>
+        <li><strong style="color:var(--green)">80–99%</strong> — near-certain: e.g. the second <code>l</code> in <code>will</code></li>
+        <li><strong style="color:var(--yellow)">30–80%</strong> — leaning that way but open to alternatives</li>
+        <li><strong style="color:var(--red)">5–30%</strong> — low confidence: temperature or uncertainty drove the pick</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Temperature — "How adventurous should the model be?"</div>
+      <table>
+        <thead><tr><th>Setting</th><th>Effect</th><th>Output style</th></tr></thead>
+        <tbody>
+          <tr><td>0.3 – 0.6</td><td>Top token dominates strongly</td><td>Repetitive but coherent</td></tr>
+          <tr><td>0.7 – 0.9</td><td>Balanced — realistic sampling</td><td>Focused, varied</td></tr>
+          <tr><td>1.0</td><td>Raw probabilities used as-is</td><td>Default — good creative range</td></tr>
+          <tr><td>1.2 – 1.5</td><td>Lower-ranked tokens get more chances</td><td>Creative, occasionally wild</td></tr>
+          <tr><td>1.8 – 2.0</td><td>Nearly uniform distribution</td><td>Mostly nonsense</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══════════════════════ TENSORBOARD ══════════════════════ -->
+  <section id="tensorboard" class="advanced-only">
+    <h2>📊 TensorBoard Dashboard</h2>
+    <p>TensorBoard is a separate visual dashboard for training charts and inference logs. Open a second Terminal window:</p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Open a new Terminal (keep the first one running)</strong>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Start TensorBoard</strong>
+          <pre><code>cd ~/llm
+.venv/bin/tensorboard --logdir=runs</code></pre>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Open <code>http://localhost:6006</code> in your browser</strong>
+        </div>
+      </div>
+    </div>
+
+    <table>
+      <thead><tr><th>Chart name</th><th>What it shows</th></tr></thead>
+      <tbody>
+        <tr><td><code>loss/train</code></td><td>Training loss — should slope down over 5000 steps</td></tr>
+        <tr><td><code>loss/val</code></td><td>Validation loss — tracks train; a growing gap signals overfitting</td></tr>
+        <tr><td><code>grad_norm</code></td><td>Gradient size — spikes are normal; sustained very high values are not</td></tr>
+        <tr><td><code>inference/entropy_bits</code></td><td>Per-token entropy during each Generate session</td></tr>
+        <tr><td><code>inference/confidence</code></td><td>Per-token confidence during generation</td></tr>
+        <tr><td><code>inference/chosen_rank</code></td><td>Was the chosen token the model's #1 pick?</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ══════════════════════ CLI ══════════════════════ -->
+  <section id="cli" class="advanced-only">
+    <h2>⌨️ Command-Line Tools</h2>
+
+    <div class="card">
+      <div class="card-title">📜 interact.py — terminal generation with full verbose log</div>
+      <pre><code><span class="cm"># Default — verbose, 200 characters, temp 1.0</span>
+.venv/bin/python interact.py
+
+<span class="cm"># Quiet — just stream the text</span>
+.venv/bin/python interact.py --quiet
+
+<span class="cm"># Lower temperature</span>
+.venv/bin/python interact.py --temp 0.7 --length 300
+
+<span class="cm"># Inside the REPL you can type:</span>
+<span class="cm">#   temp=0.8   len=200   topk=3   verbose   quit</span></code></pre>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🏋️ tiny_shakespeare_gpt.py — full training script</div>
+      <pre><code>.venv/bin/python tiny_shakespeare_gpt.py</code></pre>
+      <p style="margin-top:8px">Trains 5000 steps, saves <code>tiny_shakespeare.pt</code>, prints samples every 1000 steps.</p>
+    </div>
+
+    <h3>All project files</h3>
+    <table>
+      <thead><tr><th>File</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><code>launch.sh</code></td><td>One-click launcher — creates venv, installs deps, opens browser app</td></tr>
+        <tr><td><code>app.py</code></td><td>Gradio browser app — eight tabs: Wizard, History, Train, Generate, Score, Temperature, Replay, Attention</td></tr>
+        <tr><td><code>checkpoints/</code></td><td>Auto-saved model snapshots used by Training Replay (created automatically when you train or run Replay)</td></tr>
+        <tr><td><code>interact.py</code></td><td>Terminal REPL with verbose per-token logging and TensorBoard inference tracking</td></tr>
+        <tr><td><code>tiny_shakespeare_gpt.py</code></td><td>Standalone training script</td></tr>
+        <tr><td><code>tiny_shakespeare.pt</code></td><td>Saved model weights</td></tr>
+        <tr><td><code>tinyshakespeare.txt</code></td><td>The dataset (1.1 M chars of Shakespeare)</td></tr>
+        <tr><td><code>runs/</code></td><td>TensorBoard event logs (training + inference)</td></tr>
+        <tr><td><code>runs/run_history.json</code></td><td>Persistent run history used by the History tab</td></tr>
+        <tr><td><code>runs/reports/</code></td><td>Exported markdown reports from Wizard/History</td></tr>
+        <tr><td><code>.venv/</code></td><td>Python environment — all packages installed here</td></tr>
+        <tr><td><code>.claude/agents/</code></td><td>AI specialist agents — Reviewer, Architect, Tester (auto-activated by Claude Code)</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout warn">
+      <strong>⚠️ Always use <code>.venv/bin/python</code></strong> when running scripts directly,
+      e.g. <code>.venv/bin/python app.py</code>. Otherwise macOS uses the system Python
+      which doesn't have the packages. <code>bash launch.sh</code> handles this automatically.
+    </div>
+  </section>
+
+  <!-- ══════════════════════ AI AGENTS ══════════════════════ -->
+  <section id="agents">
+    <h2>🤖 AI Development Agents</h2>
+
+    <p>
+      Three specialist AI agents are built into this project and are currently live.
+      They live in <code>.claude/agents/</code> and are automatically activated by Claude Code
+      when you describe a task. You never need to name them explicitly —
+      just describe what you want and Claude routes to the right one.
+      The agent definitions are kept up to date as the project evolves — the Architect agent
+      in particular is responsible for keeping this guide in sync with <code>app.py</code>.
+    </p>
+
+    <div class="callout note">
+      <strong>ℹ️ What is an agent?</strong> Think of each agent as a specialist consultant
+      on your team. The Reviewer only audits — it has no ability to edit files.
+      The Architect only plans — it never writes code. The Tester runs scripts and
+      reports results. Each has a different skill level and different permissions,
+      like a real team.
+    </div>
+
+    <div class="feature-grid">
+      <div class="feature-card green">
+        <h4>🔍 Reviewer</h4>
+        <p><strong>Model:</strong> Sonnet (fast, precise)<br>
+           <strong>Permissions:</strong> Read-only — cannot edit any file<br>
+           <strong>Job:</strong> Audits code for bugs, edge cases, and deviations from the project's known patterns. Knows every project-specific gotcha (hex colors, Gradio 6 API, checkpoint naming, etc.).</p>
+      </div>
+      <div class="feature-card">
+        <h4>🏛️ Architect</h4>
+        <p><strong>Model:</strong> Opus (slowest, deepest reasoning)<br>
+           <strong>Permissions:</strong> Read-only — produces plans only<br>
+           <strong>Job:</strong> Designs new features before any code is written. Knows the 6-tab structure, the global state, and the non-technical user persona. Always delivers a written plan with plain-English descriptions.</p>
+      </div>
+      <div class="feature-card orange">
+        <h4>🧪 Tester</h4>
+        <p><strong>Model:</strong> Haiku (cheapest, fastest)<br>
+           <strong>Permissions:</strong> Can read files, write temp test scripts, and run terminal commands<br>
+           <strong>Job:</strong> Writes a minimal test, runs it with <code>.venv/bin/python</code>, reports pass/fail for each function, then cleans up. Never edits the main app.</p>
+      </div>
+    </div>
+
+    <h3>How to trigger each agent</h3>
+    <p>Just describe your task naturally. Claude Code reads the request and routes to the right agent automatically.</p>
+
+    <table>
+      <thead><tr><th>What you say</th><th>Agent activated</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><em>"review the attention heatmap code"</em></td>
+          <td>🔍 Reviewer — audits the function and reports findings</td>
+        </tr>
+        <tr>
+          <td><em>"check app.py for bugs"</em></td>
+          <td>🔍 Reviewer — full file audit</td>
+        </tr>
+        <tr>
+          <td><em>"design a feature to save generated text as a file"</em></td>
+          <td>🏛️ Architect — produces a written plan, no code yet</td>
+        </tr>
+        <tr>
+          <td><em>"plan how to add a dark/light mode toggle"</em></td>
+          <td>🏛️ Architect — designs it within the existing tab structure</td>
+        </tr>
+        <tr>
+          <td><em>"test that the temperature gallery works"</em></td>
+          <td>🧪 Tester — writes and runs tests, reports pass/fail</td>
+        </tr>
+        <tr>
+          <td><em>"verify the score tab after recent changes"</em></td>
+          <td>🧪 Tester — targeted test of score_text function</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>What the agents know about this project</h3>
+    <p>Each agent's definition file includes project-specific knowledge baked in, so you never have to repeat context:</p>
+    <table>
+      <thead><tr><th>Agent</th><th>Built-in knowledge</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>🔍 Reviewer</td>
+          <td>Known gotchas table (hex colors, Gradio 6, zero-padded checkpoints, no_grad requirements), all 6 tab handler signatures, global state variables</td>
+        </tr>
+        <tr>
+          <td>🏛️ Architect</td>
+          <td>Full 6-tab structure with inputs/outputs, all global state, the non-technical user persona, UX constraints (dark theme, plain English labels, business analogies), Gradio 6 and matplotlib constraints</td>
+        </tr>
+        <tr>
+          <td>🧪 Tester</td>
+          <td>The exact test boilerplate pattern (patch Gradio launch, load <code>.pt</code> weights), how to test generators vs return functions, how to run <code>.venv/bin/python</code>, cleanup rules</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Agent files location</h3>
+    <pre><code>~/llm/
+└── .claude/
+    └── agents/
+        ├── reviewer.md    ← read-only code auditor
+        ├── architect.md   ← feature planner (Opus model)
+        └── tester.md      ← test runner (Haiku model)</code></pre>
+
+    <div class="callout tip">
+      <strong>💡 Best workflow.</strong>  For any new feature: ask the <strong>Architect</strong>
+      to design it first → implement the code → ask the <strong>Tester</strong> to verify it →
+      ask the <strong>Reviewer</strong> to audit it. This is the same flow a professional
+      software team follows, now available to you in plain English.
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  Shakespeare GPT User Guide &nbsp;·&nbsp; Tiny transformer · 216K params · trained on 1.1M characters of Shakespeare
+  &nbsp;·&nbsp; Guide reflects all current app improvements: accordion verbatim panel · LR slider · character-level model note ·
+  progress counter · Ctrl+Enter shortcut · blue attention heatmap · Score cap 200 chars · perplexity out of ~65 ·
+  training guard · improved perplexity and attention explanations · temperature gallery footnote · branch clamp feedback
+  &nbsp;·&nbsp; Kept in sync by the Architect agent
+</footer>
+
+<script>
+  (function () {
+    const menuBtn = document.getElementById('menu-toggle');
+    const menuPanel = document.getElementById('menu-panel');
+    const highlightsPanel = document.getElementById('highlights-panel');
+    const highlightsBtn = document.getElementById('highlights-toggle');
+    const highlightsBtnMobile = document.getElementById('highlights-toggle-mobile');
+    function toggleHighlights() {
+      if (!highlightsPanel) return;
+      const open = highlightsPanel.classList.toggle('open');
+      [highlightsBtn, highlightsBtnMobile].forEach((btn) => {
+        if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+    }
+    if (highlightsBtn) highlightsBtn.addEventListener('click', toggleHighlights);
+    if (highlightsBtnMobile) highlightsBtnMobile.addEventListener('click', toggleHighlights);
+    if (menuBtn && menuPanel) {
+      menuBtn.addEventListener('click', () => {
+        const open = menuPanel.classList.toggle('open');
+        menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+      menuPanel.querySelectorAll('a').forEach((link) => {
+        link.addEventListener('click', () => {
+          menuPanel.classList.remove('open');
+          menuBtn.setAttribute('aria-expanded', 'false');
+        });
+      });
+    }
+
+    const sections = Array.from(document.querySelectorAll('.container section'));
+    const setSectionCollapsed = (section, collapsed) => {
+      section.classList.toggle('section-collapsed', collapsed);
+      const b = section.querySelector('.section-toggle');
+      if (b) b.textContent = collapsed ? 'Expand' : 'Collapse';
+    };
+    sections.forEach((section) => {
+      const h2 = section.querySelector('h2');
+      if (!h2) return;
+      const wrap = document.createElement('div');
+      wrap.className = 'section-head';
+      h2.parentNode.insertBefore(wrap, h2);
+      wrap.appendChild(h2);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'section-toggle';
+      btn.textContent = 'Collapse';
+      wrap.appendChild(btn);
+      btn.addEventListener('click', () => setSectionCollapsed(section, !section.classList.contains('section-collapsed')));
+    });
+
+    const collapseAll = document.getElementById('collapse-all');
+    const expandAll = document.getElementById('expand-all');
+    if (collapseAll) {
+      collapseAll.addEventListener('click', () => {
+        sections.forEach((section) => setSectionCollapsed(section, true));
+      });
+    }
+    if (expandAll) {
+      expandAll.addEventListener('click', () => {
+        sections.forEach((section) => setSectionCollapsed(section, false));
+      });
+    }
+
+    const poBtn = document.getElementById('role-po');
+    const researchBtn = document.getElementById('role-research');
+    const root = document.body;
+    if (!poBtn || !researchBtn) return;
+    function applyRoleSectionDefaults(role) {
+      const keepOpenPO = new Set(['start', 'interface', 'wizard', 'generate']);
+      const keepOpenResearch = new Set(['start', 'interface', 'generate', 'metrics', 'tensorboard', 'cli']);
+      const keepOpen = role === 'po' ? keepOpenPO : keepOpenResearch;
+      sections.forEach((section) => {
+        const open = keepOpen.has(section.id);
+        setSectionCollapsed(section, !open);
+      });
+    }
+    function setRole(role) {
+      const isPO = role === 'po';
+      root.classList.toggle('role-po', isPO);
+      root.classList.toggle('role-research', !isPO);
+      root.classList.toggle('advanced-hidden', isPO);
+      poBtn.classList.toggle('active', isPO);
+      researchBtn.classList.toggle('active', !isPO);
+      applyRoleSectionDefaults(role);
+      try { localStorage.setItem('guide-role', role); } catch (e) {}
+    }
+    poBtn.addEventListener('click', () => setRole('po'));
+    researchBtn.addEventListener('click', () => setRole('research'));
+    let saved = 'po';
+    try { saved = localStorage.getItem('guide-role') || 'po'; } catch (e) {}
+    setRole(saved === 'research' ? 'research' : 'po');
+  })();
+</script>
+
+</body>
+</html>

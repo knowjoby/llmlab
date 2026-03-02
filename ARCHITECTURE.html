@@ -1,0 +1,1422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shakespeare GPT — Architecture Document</title>
+  <style>
+    :root {
+      --bg:      #0f1117;
+      --surface: #1a1d27;
+      --card:    #22263a;
+      --border:  #2e3350;
+      --accent:  #7c83fd;
+      --orange:  #f78c6c;
+      --green:   #4ade80;
+      --yellow:  #fbbf24;
+      --red:     #f87171;
+      --text:    #e2e8f0;
+      --muted:   #8892b0;
+      --code-bg: #141720;
+      --r:       10px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg); color: var(--text);
+      line-height: 1.75; font-size: 15px;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #1a1d27 0%, #0f1117 70%);
+      border-bottom: 1px solid var(--border);
+      padding: 52px 40px 38px; text-align: center;
+    }
+    .hero h1 { font-size: 2.4rem; color: #fff; letter-spacing: -.5px; }
+    .hero h1 span { color: var(--accent); }
+    .hero p  { color: var(--muted); margin-top: 10px; font-size: 1.05rem; }
+    .badge {
+      display: inline-block; background: var(--card);
+      border: 1px solid var(--border); border-radius: 20px;
+      padding: 4px 14px; font-size: .78rem; color: var(--accent);
+      margin: 18px 4px 0; letter-spacing: .5px;
+    }
+
+    /* ── Nav ── */
+    nav {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 0 40px; display: flex; gap: 2px; overflow-x: auto;
+      position: sticky; top: 0; z-index: 100;
+    }
+    nav a {
+      color: var(--muted); text-decoration: none;
+      padding: 13px 16px; font-size: .86rem; white-space: nowrap;
+      border-bottom: 2px solid transparent; transition: color .2s, border-color .2s;
+    }
+    nav a:hover { color: var(--text); border-bottom-color: var(--accent); }
+
+    /* ── Layout ── */
+    .container { max-width: 980px; margin: 0 auto; padding: 44px 24px 90px; }
+    section { margin-bottom: 60px; scroll-margin-top: 64px; }
+    h2 {
+      font-size: 1.5rem; color: #fff; margin-bottom: 20px;
+      padding-bottom: 10px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+    }
+    h3 { font-size: 1.05rem; color: var(--accent); margin: 26px 0 10px; }
+    h4 { font-size: .95rem; color: var(--yellow); margin: 18px 0 8px; }
+    p  { color: var(--text); margin-bottom: 14px; }
+    ul, ol { margin-left: 22px; margin-bottom: 14px; color: var(--text); }
+    li { margin-bottom: 6px; }
+
+    /* ── Steps ── */
+    .steps { counter-reset: step; }
+    .step  { display: flex; gap: 18px; margin-bottom: 22px; align-items: flex-start; }
+    .step-num {
+      counter-increment: step; flex-shrink: 0; width: 32px; height: 32px;
+      border-radius: 50%; background: var(--accent); color: #fff;
+      font-weight: 700; font-size: .85rem;
+      display: flex; align-items: center; justify-content: center; margin-top: 2px;
+    }
+    .step-body { flex: 1; }
+    .step-body strong { display: block; color: #fff; margin-bottom: 4px; font-size: 1rem; }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 20px 24px; margin-bottom: 16px;
+    }
+    .card-title {
+      font-weight: 700; color: #fff; margin-bottom: 10px; font-size: 1rem;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    /* ── Feature cards ── */
+    .feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 18px 0; }
+    @media (max-width: 640px) { .feature-grid { grid-template-columns: 1fr; } }
+    .feature-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 18px 20px;
+      border-top: 3px solid var(--accent);
+    }
+    .feature-card.orange { border-top-color: var(--orange); }
+    .feature-card.green  { border-top-color: var(--green);  }
+    .feature-card.yellow { border-top-color: var(--yellow); }
+    .feature-card.red    { border-top-color: var(--red);    }
+    .feature-card h4 { color: #fff; margin-bottom: 8px; font-size: .98rem; }
+    .feature-card p  { font-size: .88rem; color: var(--muted); margin: 0; }
+
+    /* ── Callouts ── */
+    .callout {
+      border-radius: var(--r); padding: 14px 18px; margin: 18px 0;
+      border-left: 4px solid; font-size: .92rem;
+    }
+    .callout.tip  { background: #0f2820; border-color: var(--green);  color: #a7f3d0; }
+    .callout.note { background: #1a1d3a; border-color: var(--accent); color: #c7d2fe; }
+    .callout.warn { background: #2a1a0a; border-color: var(--yellow); color: #fde68a; }
+    .callout.danger { background: #2a0f0f; border-color: var(--red); color: #fca5a5; }
+    .callout strong { font-weight: 700; }
+
+    /* ── Code ── */
+    code {
+      font-family: "SF Mono", "Fira Code", monospace; font-size: .87em;
+      background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 4px; padding: 2px 6px; color: var(--orange);
+    }
+    pre {
+      background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 16px 20px;
+      overflow-x: auto; margin: 12px 0;
+    }
+    pre code { background: none; border: none; padding: 0; font-size: .88rem; color: var(--text); line-height: 1.6; }
+    .cm { color: var(--muted); }
+    .hl { color: var(--orange); }
+    .gr { color: var(--green); }
+    .ac { color: var(--accent); }
+    .yw { color: var(--yellow); }
+
+    /* ── Diagram ── */
+    .ui-diagram {
+      background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 20px; font-family: monospace;
+      font-size: .82rem; line-height: 1.7; color: var(--text);
+      overflow-x: auto; margin: 14px 0;
+    }
+    .ui-tab    { color: var(--accent); font-weight: bold; }
+    .ui-button { color: var(--green); }
+    .ui-label  { color: var(--yellow); }
+    .ui-arrow  { color: var(--muted); }
+    .ui-box    { color: var(--orange); }
+
+    /* ── Table ── */
+    table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: .9rem; }
+    th {
+      background: var(--card); color: var(--accent); text-align: left;
+      padding: 10px 14px; font-size: .78rem; text-transform: uppercase;
+      letter-spacing: .5px; border-bottom: 1px solid var(--border);
+    }
+    td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--card); }
+
+    /* ── TOC ── */
+    .toc {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 22px 26px; margin-bottom: 44px;
+    }
+    .toc h3 { margin: 0 0 14px; color: var(--muted); font-size: .78rem;
+              text-transform: uppercase; letter-spacing: 1px; }
+    .toc ol { padding-left: 20px; }
+    .toc li { margin-bottom: 7px; }
+    .toc a  { color: var(--accent); text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+
+    /* ── Flow box ── */
+    .flow-box {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 18px 22px; margin: 12px 0;
+    }
+    .flow-box .flow-title {
+      font-weight: 700; color: var(--yellow); font-size: .88rem;
+      text-transform: uppercase; letter-spacing: .5px; margin-bottom: 12px;
+    }
+
+    /* ── State table ── */
+    .state-badge {
+      display: inline-block; padding: 2px 8px; border-radius: 4px;
+      font-size: .76rem; font-family: "SF Mono", monospace; font-weight: 600;
+    }
+    .state-badge.none    { background: #f8717122; color: var(--red); }
+    .state-badge.set     { background: #4ade8022; color: var(--green); }
+    .state-badge.startup { background: #7c83fd22; color: var(--accent); }
+    .state-badge.runtime { background: #fbbf2422; color: var(--yellow); }
+
+    /* ── Section number badge ── */
+    .sec-num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; border-radius: 6px;
+      background: var(--accent); color: #fff;
+      font-size: .82rem; font-weight: 700; flex-shrink: 0;
+    }
+
+    footer {
+      text-align: center; color: var(--muted); font-size: .82rem;
+      padding: 24px; border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>&#x1F3AD; <span>Shakespeare GPT</span> — Architecture Document</h1>
+  <p>A complete technical and conceptual guide to how this system is built, how it runs, and how to extend it.</p>
+  <div>
+    <span class="badge">216,576 parameters</span>
+    <span class="badge">65-char vocabulary</span>
+    <span class="badge">4-layer transformer</span>
+    <span class="badge">6 Gradio tabs</span>
+    <span class="badge">3 AI agents</span>
+    <span class="badge">~1,066 lines · single file</span>
+    <span class="badge">Python 3.14 · Gradio 6</span>
+    <span class="badge">Apple Silicon / CPU</span>
+  </div>
+</div>
+
+<nav>
+  <a href="#summary">1. Summary</a>
+  <a href="#overview">2. System Overview</a>
+  <a href="#model">3. Model Architecture</a>
+  <a href="#tabs">4. The 6 Tabs</a>
+  <a href="#flows">5. Data Flows</a>
+  <a href="#state">6. Global State</a>
+  <a href="#decisions">7. Design Decisions</a>
+  <a href="#agents">8. AI Agents</a>
+  <a href="#files">9. File Structure</a>
+  <a href="#extension">10. Extension Guide</a>
+</nav>
+
+<div class="container">
+
+  <!-- TOC -->
+  <div class="toc">
+    <h3>Contents</h3>
+    <ol>
+      <li><a href="#summary">Executive Summary — what this is and who it is for</a></li>
+      <li><a href="#overview">System Overview — layered architecture diagram</a></li>
+      <li><a href="#model">Model Architecture — technical deep dive into the GPT</a></li>
+      <li><a href="#tabs">Application Architecture — the six tabs in detail</a></li>
+      <li><a href="#flows">Data Flow Diagrams — training, inference, attention capture</a></li>
+      <li><a href="#state">Global State — every module-level variable documented</a></li>
+      <li><a href="#decisions">Key Design Decisions and Trade-offs</a></li>
+      <li><a href="#agents">AI Agent Ecosystem — Architect, Tester, Reviewer</a></li>
+      <li><a href="#files">File Structure — annotated project tree</a></li>
+      <li><a href="#extension">Improvement and Extension Guide — how to add a new tab</a></li>
+    </ol>
+    <p style="margin-top:14px;font-size:.82rem;color:var(--muted)">
+      This document is maintained by the <strong>Architect agent</strong>
+      (<code>.claude/agents/architect.md</code>). When <code>app.py</code> changes,
+      re-run the Architect agent to keep this document in sync.
+    </p>
+  </div>
+
+
+  <!-- ══════════════════════ 1. EXECUTIVE SUMMARY ══════════════════════ -->
+  <section id="summary">
+    <h2><span class="sec-num">1</span> Executive Summary</h2>
+
+    <p>Shakespeare GPT is a miniature artificial intelligence that has been taught to write in the style of Shakespeare — one character at a time. It was built from scratch using a type of AI called a "transformer," the same fundamental design that powers ChatGPT, only dramatically smaller. Where ChatGPT has tens of billions of parameters, this model has 216,576 — small enough to train in minutes on a laptop, yet large enough to produce recognisably Shakespearean prose. The entire application runs locally in your browser via a Python web server; nothing is sent to the cloud.</p>
+
+    <p>Beyond just generating text, the app is designed as a learning tool. Every decision the model makes during generation is made visible: which characters it was considering, how confident it was, how that confidence changed over time. Separate tabs let you compare how temperature (the model's "boldness dial") changes the output, replay the model's learning process step by step, paste any text to see how well the model would have predicted it, and peer inside the model's attention mechanism to see literally which characters it is "looking at" when deciding what to write next. The project also ships with three AI sub-agents — Architect, Tester, and Reviewer — that can extend, validate, and audit the codebase automatically.</p>
+
+    <h3>Who this is for</h3>
+    <p>The primary user is a non-technical AI researcher or product owner who wants to understand how large language models work from the inside — not how to build them, but how they behave. Every label in the UI avoids jargon. The Architect agent writes plans in plain English with business analogies. The system runs on a Mac with no GPU required.</p>
+
+    <h3>What problems it solves</h3>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <h4>The "black box" problem</h4>
+        <p>Most LLM demos show only the output. This app shows every decision, confidence score, and attention weight — the AI's "thinking" made visible in real time.</p>
+      </div>
+      <div class="feature-card orange">
+        <h4>The "is it copying?" question</h4>
+        <p>The verbatim detector checks whether generated text was memorised from training data, answering the core copyright / originality question with a character-level overlay.</p>
+      </div>
+      <div class="feature-card green">
+        <h4>The "temperature dial" mystery</h4>
+        <p>The temperature gallery generates the same prompt at five boldness levels side by side, making the abstract concept of sampling temperature immediately tangible.</p>
+      </div>
+      <div class="feature-card yellow">
+        <h4>The "how did it learn?" question</h4>
+        <p>The training replay loads model snapshots from different training steps and shows how perplexity dropped and writing quality improved as training progressed.</p>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════ 2. SYSTEM OVERVIEW ══════════════════════ -->
+  <section id="overview">
+    <h2><span class="sec-num">2</span> System Overview — Architecture Diagram</h2>
+
+    <p>The system is three layers deep: a browser UI served by Gradio, a Python application that manages model state and handles all tab logic, and a PyTorch GPT model that does the actual prediction. Training data lives on disk and is loaded once at startup.</p>
+
+    <div class="ui-diagram">
+<span class="ui-tab">┌─────────────────────────────────────────────────────────────────┐
+│                    Browser UI — Gradio 6                        │
+│   6 tabs rendered as HTML/JS · communicates via HTTP/WS         │
+│   Theme: Soft · CSS: monospace textareas                        │
+└────────────────────────────┬────────────────────────────────────┘</span>
+                             <span class="ui-arrow">│ HTTP / WebSocket (streaming yields)</span>
+<span class="ui-box">┌────────────────────────────▼────────────────────────────────────┐
+│                  Python App — app.py (~1,066 lines)             │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  6 Tab Handlers (Gradio generator / instant functions)  │   │
+│  │  stream_training · stream_generate · branch_from_step   │   │
+│  │  score_text · compare_temperatures · run_replay         │   │
+│  │  show_attention                                         │   │
+│  └──────────────────────────┬──────────────────────────────┘   │
+│                             │                                   │
+│  ┌─────────────────────┐   │   ┌──────────────────────────┐   │
+│  │  Global State       │   │   │  Helper Functions        │   │
+│  │  _model             │◄──┤   │  conf_to_hex()           │   │
+│  │  _optimizer         │   │   │  make_colored_html()     │   │
+│  │  _gen_history       │   │   │  make_entropy_chart()    │   │
+│  │  _last_temp         │   │   │  compute_verbatim_mask() │   │
+│  │  _last_prompt       │   │   │  capture_attention()     │   │
+│  │  _ngrams (283k set) │   │   │  _quick_generate()       │   │
+│  │  _REPLAY_TEST       │   │   │  estimate_loss()         │   │
+│  │  train_data/val_data│   │   │  compute_perplexity()    │   │
+│  │  _training_in_prog  │   │   └──────────────────────────┘   │
+│  └─────────────────────┘   │                                   │
+└────────────────────────────┼────────────────────────────────────┘</span>
+                             <span class="ui-arrow">│ torch.Tensor operations</span>
+<span class="ui-tab">┌────────────────────────────▼────────────────────────────────────┐
+│                  GPT Model — PyTorch nn.Module                  │
+│                                                                 │
+│  tok_emb: Embedding(65, 64)  ←  character token lookup         │
+│  pos_emb: Embedding(128, 64) ←  position lookup                │
+│  Dropout(0.1)                ←  regularisation                  │
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │  Block × 4  (N_LAYER = 4)                                │  │
+│  │  ┌────────────────────────────────────────────────────┐  │  │
+│  │  │  LayerNorm(64)                                     │  │  │
+│  │  │  CausalSelfAttention                               │  │  │
+│  │  │    c_attn: Linear(64→192)  [Q, K, V combined]     │  │  │
+│  │  │    4 heads × 16-dim each                          │  │  │
+│  │  │    causal mask (lower-triangular)                 │  │  │
+│  │  │    _capture / _last_attn  [attention hook]        │  │  │
+│  │  │    c_proj: Linear(64→64)                          │  │  │
+│  │  │  LayerNorm(64)                                     │  │  │
+│  │  │  MLP:  Linear(64→256) → GELU → Linear(256→64)    │  │  │
+│  │  └────────────────────────────────────────────────────┘  │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│                                                                 │
+│  ln_f:  LayerNorm(64)         ←  final normalisation           │
+│  head:  Linear(64→65, bias=False)  ←  logits over vocab        │
+└────────────────────────────┬────────────────────────────────────┘</span>
+                             <span class="ui-arrow">│ reads at startup / writes after training</span>
+<span class="ui-box">┌────────────────────────────▼────────────────────────────────────┐
+│  Disk                                                           │
+│  tinyshakespeare.txt     — 1.1M chars, training corpus          │
+│  tiny_shakespeare.pt     — saved weights (state_dict)           │
+│  checkpoints/step_NNNNN.pt  — training snapshots (10 steps)    │
+│  runs/tiny_shakespeare/  — TensorBoard event files              │
+└─────────────────────────────────────────────────────────────────┘</span></div>
+
+    <div class="callout note">
+      <strong>Key insight:</strong> Everything above the dashed "Disk" layer is stateless between restarts except for the files on disk. All model weights, checkpoints, and the training corpus survive a restart. All in-memory global state (generation history, current model object, etc.) is lost on restart and must be re-loaded.
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════ 3. MODEL ARCHITECTURE ══════════════════════ -->
+  <section id="model">
+    <h2><span class="sec-num">3</span> Model Architecture — Technical Deep Dive</h2>
+
+    <h3>Character-level tokenisation</h3>
+    <p>This model operates at the character level — every letter, digit, punctuation mark, newline, and space is a separate token. The vocabulary is built by scanning the entire Shakespeare corpus and collecting the unique characters. There are exactly 65 unique characters in the dataset.</p>
+    <pre><code><span class="cm"># Built once at module load time from tinyshakespeare.txt</span>
+chars      = sorted(set(_text))        <span class="cm"># 65 unique chars</span>
+VOCAB_SIZE = len(chars)                <span class="cm"># 65</span>
+stoi       = {c: i for i, c in enumerate(chars)}   <span class="cm"># char → int</span>
+itos       = {i: c for i, c in enumerate(chars)}   <span class="cm"># int → char</span>
+encode     = lambda s: [stoi[c] for c in s if c in stoi]
+decode     = lambda l: "".join(itos[i] for i in l)</code></pre>
+    <p>Characters not in the Shakespeare vocabulary (e.g., emoji, non-Latin letters) are silently dropped by the <code>if c in stoi</code> guard in the encoder. The Score tab surfaces a note when this happens.</p>
+
+    <h3>Embedding layers</h3>
+    <p>Two learned embedding tables convert integers to dense vectors of dimension 64 (<code>N_EMBD = 64</code>). The token embedding maps character ID to a 64-dimensional meaning vector. The positional embedding maps position index (0–127) to a 64-dimensional location vector. Both are added before the first transformer block.</p>
+    <pre><code>self.tok_emb = nn.Embedding(VOCAB_SIZE, N_EMBD)  <span class="cm"># shape: (65, 64)</span>
+self.pos_emb = nn.Embedding(BLOCK_SIZE, N_EMBD)  <span class="cm"># shape: (128, 64)</span>
+
+<span class="cm"># In forward():</span>
+pos = torch.arange(T, device=DEVICE)             <span class="cm"># [0, 1, ..., T-1]</span>
+x   = self.drop(self.tok_emb(idx) + self.pos_emb(pos))</code></pre>
+
+    <h3>Transformer block structure</h3>
+    <p>The model stacks 4 identical transformer blocks (<code>N_LAYER = 4</code>). Each block uses Pre-LN (LayerNorm before each sub-layer, not after), which is more stable during training than the original transformer design. Both sub-layers use residual connections.</p>
+    <pre><code><span class="cm"># Block.forward() — Pre-LN with residuals</span>
+x = x + self.attn(self.ln1(x))   <span class="cm"># residual + attention</span>
+x = x + self.mlp(self.ln2(x))    <span class="cm"># residual + feed-forward</span></code></pre>
+
+    <h3>CausalSelfAttention</h3>
+    <p>This is the core mechanism that lets each position in the sequence "look back" at earlier positions. "Causal" means a position cannot see future positions — enforced by a lower-triangular mask that sets future attention scores to negative infinity before softmax. There are 4 attention heads (<code>N_HEAD = 4</code>), each operating in 16-dimensional space (64 / 4).</p>
+    <pre><code><span class="cm"># Q, K, V all produced from one Linear in one pass</span>
+q, k, v = self.c_attn(x).split(N_EMBD, dim=2)
+
+<span class="cm"># Reshape for multi-head: (B, T, n_head, head_dim) → (B, n_head, T, head_dim)</span>
+q = q.view(B, T, self.n_head, self.head_dim).transpose(1, 2)
+
+<span class="cm"># Scaled dot-product attention</span>
+att = (q @ k.transpose(-2, -1)) * (self.head_dim ** -0.5)
+
+<span class="cm"># Apply causal mask — positions cannot see the future</span>
+att = att.masked_fill(self.bias[:, :, :T, :T] == 0, float("-inf"))
+att = F.softmax(att, dim=-1)
+
+<span class="cm"># Attention capture hook — set _capture=True before forward pass</span>
+if self._capture:
+    self._last_attn = att[0].detach().cpu()   <span class="cm"># shape: (n_head, T, T)</span></code></pre>
+
+    <h3>MLP (feed-forward network)</h3>
+    <p>After attention, each position is processed independently through a two-layer network with a 4x expansion. GELU activation is used instead of ReLU (the standard choice for modern transformers, including GPT models).</p>
+    <pre><code>self.net = nn.Sequential(
+    nn.Linear(N_EMBD, 4 * N_EMBD),   <span class="cm"># 64 → 256</span>
+    nn.GELU(),
+    nn.Linear(4 * N_EMBD, N_EMBD),   <span class="cm"># 256 → 64</span>
+    nn.Dropout(DROPOUT),
+)</code></pre>
+
+    <h3>Language model head</h3>
+    <p>After the 4 transformer blocks and a final LayerNorm, a single linear projection maps the 64-dimensional hidden state to 65 logits — one per vocabulary character. No bias term is used (matching the GPT-2 design). The softmax of these logits gives the probability distribution over next characters.</p>
+    <pre><code>self.ln_f = nn.LayerNorm(N_EMBD)
+self.head = nn.Linear(N_EMBD, VOCAB_SIZE, bias=False)
+
+<span class="cm"># In forward():</span>
+return self.head(self.ln_f(x))   <span class="cm"># output shape: (B, T, 65)</span></code></pre>
+
+    <h3>Parameter count breakdown</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Layer / Component</th>
+          <th>Shape</th>
+          <th>Parameters</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>tok_emb</code> — token embedding</td>
+          <td>65 × 64</td>
+          <td style="color:var(--green)">4,160</td>
+          <td>65 chars × 64 dims</td>
+        </tr>
+        <tr>
+          <td><code>pos_emb</code> — positional embedding</td>
+          <td>128 × 64</td>
+          <td style="color:var(--green)">8,192</td>
+          <td>128 positions × 64 dims</td>
+        </tr>
+        <tr>
+          <td><code>Block.ln1</code> × 4 — LayerNorm (weight + bias)</td>
+          <td>64 + 64 each</td>
+          <td style="color:var(--green)">512</td>
+          <td>4 × 128 params</td>
+        </tr>
+        <tr>
+          <td><code>Block.attn.c_attn</code> × 4 — Q/K/V projection</td>
+          <td>64 × 192 + bias 192</td>
+          <td style="color:var(--green)">49,920</td>
+          <td>4 × (12,288 + 192)</td>
+        </tr>
+        <tr>
+          <td><code>Block.attn.c_proj</code> × 4 — output projection</td>
+          <td>64 × 64 + bias 64</td>
+          <td style="color:var(--green)">16,640</td>
+          <td>4 × (4,096 + 64)</td>
+        </tr>
+        <tr>
+          <td><code>Block.ln2</code> × 4 — LayerNorm (weight + bias)</td>
+          <td>64 + 64 each</td>
+          <td style="color:var(--green)">512</td>
+          <td>4 × 128 params</td>
+        </tr>
+        <tr>
+          <td><code>Block.mlp</code> fc1 × 4 — expand Linear</td>
+          <td>64 × 256 + bias 256</td>
+          <td style="color:var(--green)">66,560</td>
+          <td>4 × (16,384 + 256)</td>
+        </tr>
+        <tr>
+          <td><code>Block.mlp</code> fc2 × 4 — contract Linear</td>
+          <td>256 × 64 + bias 64</td>
+          <td style="color:var(--green)">66,560</td>
+          <td>4 × (16,384 + 256)</td>
+        </tr>
+        <tr>
+          <td><code>ln_f</code> — final LayerNorm</td>
+          <td>64 + 64</td>
+          <td style="color:var(--green)">128</td>
+          <td>weight + bias</td>
+        </tr>
+        <tr>
+          <td><code>head</code> — LM head Linear (no bias)</td>
+          <td>64 × 65</td>
+          <td style="color:var(--green)">4,160</td>
+          <td>no bias term</td>
+        </tr>
+        <tr style="background:var(--card)">
+          <td><strong>Total</strong></td>
+          <td>—</td>
+          <td style="color:var(--accent);font-weight:700">216,576</td>
+          <td>Confirmed by <code>model_status_str()</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout note">
+      <strong>Weight tying note:</strong> The language model head (<code>head</code>) is <em>not</em> weight-tied to <code>tok_emb</code> in this implementation. Weight tying (sharing weights between the input embedding and output projection) is common in larger models to save parameters, but at 216K params it is not necessary here.
+    </div>
+
+    <h3>Weight initialisation</h3>
+    <p>All linear and embedding weights are initialised from a normal distribution with standard deviation 0.02 (matching the GPT-2 paper). All biases are initialised to zero.</p>
+
+    <h3>Hyperparameters summary</h3>
+    <table>
+      <thead>
+        <tr><th>Constant</th><th>Value</th><th>Meaning</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>BLOCK_SIZE</code></td><td>128</td><td>Maximum context window in characters</td></tr>
+        <tr><td><code>BATCH_SIZE</code></td><td>32</td><td>Training sequences per gradient step</td></tr>
+        <tr><td><code>N_EMBD</code></td><td>64</td><td>Embedding / hidden dimension</td></tr>
+        <tr><td><code>N_HEAD</code></td><td>4</td><td>Attention heads per block</td></tr>
+        <tr><td><code>N_LAYER</code></td><td>4</td><td>Number of transformer blocks</td></tr>
+        <tr><td><code>DROPOUT</code></td><td>0.1</td><td>Dropout rate (attention + MLP + embedding)</td></tr>
+        <tr><td><code>GRAD_CLIP</code></td><td>1.0</td><td>Gradient norm clipping threshold</td></tr>
+        <tr><td><code>EVAL_BATCHES</code></td><td>20</td><td>Batches averaged for loss estimation</td></tr>
+        <tr><td><code>VOCAB_SIZE</code></td><td>65</td><td>Unique characters in dataset (derived)</td></tr>
+        <tr><td><code>NGRAM_N</code></td><td>6</td><td>n-gram length for verbatim detection</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+
+  <!-- ══════════════════════ 4. APPLICATION ARCHITECTURE ══════════════════════ -->
+  <section id="tabs">
+    <h2><span class="sec-num">4</span> Application Architecture — The 6 Tabs</h2>
+
+    <p>Every tab in the Gradio UI maps to one or more Python handler functions. Handlers that stream results back live (showing progress as it runs) are implemented as Python generator functions using <code>yield</code>. Handlers that complete before returning use a plain <code>return</code>. The Gradio framework handles the difference automatically.</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Tab</th>
+          <th>Purpose</th>
+          <th>Handler function(s)</th>
+          <th>Inputs</th>
+          <th>Outputs</th>
+          <th>Type</th>
+          <th>Key internals called</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>&#x1F3CB;&#xFE0F; Train</strong></td>
+          <td>Train a new model from scratch or load existing weights from <code>tiny_shakespeare.pt</code></td>
+          <td><code>stream_training(n_steps, lr_val)</code><br><br><code>load_model()</code></td>
+          <td>Steps slider (100–5000)<br>LR slider (1e-5–1e-3)</td>
+          <td><code>train_log</code> (Textbox)<br><code>status_bar</code> (Textbox)<br><code>train_loss_plot</code> (Plot)</td>
+          <td><span style="color:var(--yellow)">Generator</span><br><span style="color:var(--green)">Instant return</span></td>
+          <td><code>_build_model()</code>, <code>get_batch()</code>, <code>estimate_loss()</code>, <code>grad_norm()</code>, <code>save_checkpoint()</code>, <code>make_loss_plot()</code>, <code>SummaryWriter</code></td>
+        </tr>
+        <tr>
+          <td><strong>&#x1F3AD; Generate</strong></td>
+          <td>Write Shakespeare from a prompt. Shows step-by-step log, confidence-coloured text, entropy chart, verbatim overlay. Branch sub-section lets user re-roll from any character position.</td>
+          <td><code>stream_generate(prompt, temp, length, topk, verbose)</code><br><br><code>branch_from_step(branch_step)</code></td>
+          <td>Prompt (Textbox)<br>Temperature (0.1–2.0)<br>Length (20–400)<br>Top-K (1–10)<br>Verbose checkbox<br>Branch step (1–400)</td>
+          <td><code>gen_log</code> (Textbox)<br><code>gen_html</code> (HTML)<br><code>gen_chart</code> (Plot)<br><code>gen_verb</code> (HTML)<br><code>branch_log</code> (Textbox)<br><code>branch_html</code> (HTML)<br><code>branch_chart</code> (Plot)</td>
+          <td><span style="color:var(--yellow)">Generator (both)</span></td>
+          <td><code>_gen_step()</code>, <code>make_colored_html()</code>, <code>make_entropy_chart()</code>, <code>compute_verbatim_mask()</code>, <code>make_verbatim_html()</code>, <code>human_char()</code>, <code>entropy_label()</code>, <code>choice_comment()</code></td>
+        </tr>
+        <tr>
+          <td><strong>&#x1F52C; Score</strong></td>
+          <td>Paste any text and see per-character confidence — how well the trained model would have predicted each character. Reports perplexity and top-surprise positions.</td>
+          <td><code>score_text(input_text)</code></td>
+          <td>Input text (Textbox, up to 200 chars)</td>
+          <td><code>score_html</code> (HTML)<br><code>score_chart</code> (Plot)<br><code>score_stats</code> (Textbox)</td>
+          <td><span style="color:var(--green)">Instant return</span></td>
+          <td><code>encode()</code>, <code>decode()</code>, <code>_span()</code>, <code>conf_to_hex()</code>, <code>make_score_chart()</code></td>
+        </tr>
+        <tr>
+          <td><strong>&#x1F321;&#xFE0F; Temperature</strong></td>
+          <td>Generate the same prompt simultaneously at 5 temperature levels (0.3, 0.6, 1.0, 1.4, 1.8). Cards appear one by one as each completes — streaming gallery with confidence badges.</td>
+          <td><code>compare_temperatures(prompt, length)</code></td>
+          <td>Prompt (Textbox)<br>Length slider (40–150)</td>
+          <td><code>gallery_html</code> (HTML)</td>
+          <td><span style="color:var(--yellow)">Generator</span></td>
+          <td><code>_quick_generate()</code>, <code>_gallery_html()</code>, <code>make_colored_html()</code></td>
+        </tr>
+        <tr>
+          <td><strong>&#x23EA; Replay</strong></td>
+          <td>Load each saved checkpoint in order, compute perplexity on a fixed test phrase, generate sample text, and render a progressive chart showing how the model improved over training steps.</td>
+          <td><code>run_replay(gen_prompt)</code></td>
+          <td>Prompt (Textbox)</td>
+          <td><code>replay_log</code> (Textbox)<br><code>replay_chart</code> (Plot)<br><code>replay_grid</code> (HTML)</td>
+          <td><span style="color:var(--yellow)">Generator</span></td>
+          <td><code>list_checkpoints()</code>, <code>load_checkpoint_model()</code>, <code>compute_perplexity()</code>, <code>_quick_generate()</code>, <code>_replay_perplexity_chart()</code>, <code>_replay_samples_html()</code></td>
+        </tr>
+        <tr>
+          <td><strong>&#x1F52D; Attention</strong></td>
+          <td>Show which characters the model focused on when deciding what comes next. Renders a bar strip sorted by attention weight and a 2×2 heatmap grid (one subplot per transformer layer).</td>
+          <td><code>show_attention(context_str)</code></td>
+          <td>Context string (Textbox, up to 18 chars used)</td>
+          <td><code>attn_strip</code> (HTML)<br><code>attn_chart</code> (Plot)</td>
+          <td><span style="color:var(--green)">Instant return</span></td>
+          <td><code>capture_attention()</code>, <code>make_attention_strip_html()</code>, <code>make_attention_chart()</code>, <code>human_char()</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout warn">
+      <strong>Gradio 6 generator yield rule:</strong> Every <code>yield</code> in a generator handler must emit a tuple whose length exactly matches the number of items in the <code>outputs=[]</code> list wired in the event. Mismatches cause silent failures or runtime errors. Use <code>gr.skip()</code> as a sentinel when a particular output should not be updated on that yield.
+    </div>
+
+    <h3>Gradio event wiring</h3>
+    <pre><code><span class="cm"># Train tab</span>
+btn_load.click(fn=load_model, outputs=[status_bar, train_loss_plot])
+btn_train.click(fn=stream_training, inputs=[ui_steps, ui_lr],
+                outputs=[train_log, status_bar, train_loss_plot])
+
+<span class="cm"># Generate tab</span>
+btn_gen.click(fn=stream_generate,
+              inputs=[ui_prompt, ui_temp, ui_length, ui_topk, ui_verbose],
+              outputs=[gen_log, gen_html, gen_chart, gen_verb, branch_log])
+ui_prompt.submit(fn=stream_generate, ...)   <span class="cm"># also fires on Enter key</span>
+btn_branch.click(fn=branch_from_step, inputs=[branch_step_in],
+                 outputs=[branch_log, branch_html, branch_chart])
+
+<span class="cm"># Score tab</span>
+btn_score.click(fn=score_text, inputs=[score_input],
+                outputs=[score_html, score_chart, score_stats])
+
+<span class="cm"># Temperature tab</span>
+btn_compare.click(fn=compare_temperatures, inputs=[temp_prompt, temp_length],
+                  outputs=[gallery_html])
+
+<span class="cm"># Replay tab</span>
+btn_replay.click(fn=run_replay, inputs=[replay_prompt],
+                 outputs=[replay_log, replay_chart, replay_grid])
+
+<span class="cm"># Attention tab</span>
+btn_attn.click(fn=show_attention, inputs=[attn_ctx],
+               outputs=[attn_strip, attn_chart])</code></pre>
+
+    <h3>Gradio launch configuration</h3>
+    <pre><code>demo.launch(
+    inbrowser=True,
+    theme=gr.themes.Soft(),
+    css=".monospace textarea { font-family: monospace !important; font-size: 12px !important; }",
+)</code></pre>
+    <div class="callout note">
+      <strong>Gradio 6 quirk:</strong> The <code>theme</code> and <code>css</code> parameters must go in <code>demo.launch()</code>, not in <code>gr.Blocks()</code>. Putting them in <code>Blocks()</code> silently fails in Gradio 6. Also: <code>gr.Textbox(show_copy_button=True)</code> was removed in Gradio 6 and will throw an error.
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════ 5. DATA FLOWS ══════════════════════ -->
+  <section id="flows">
+    <h2><span class="sec-num">5</span> Data Flow Diagrams</h2>
+
+    <!-- Training Flow -->
+    <h3>Training flow</h3>
+    <div class="flow-box">
+      <div class="flow-title">When the user clicks "Train from scratch"</div>
+      <div class="ui-diagram">
+<span class="ui-label">tinyshakespeare.txt</span>  (1.1M characters, already loaded at startup)
+        <span class="ui-arrow">│ encode() — stoi lookup — already done at module level</span>
+        ▼
+<span class="ui-box">_data = torch.tensor(encode(_text))  ─────────► train_data (90%) / val_data (10%)</span>
+        <span class="ui-arrow">│</span>
+        ▼
+<span class="ui-tab">stream_training(n_steps, lr_val)</span>
+   │
+   ├─ <span class="ui-button">_build_model(lr)</span>  →  creates GPT instance + AdamW optimizer, sets _model / _optimizer
+   │
+   └─ for step in range(1, n_steps+1):
+         │
+         ├─ <span class="ui-button">get_batch("train")</span>
+         │     │ random start indices (batch_size=32)
+         │     │ x: (32, 128) int tensor — input context
+         │     └ y: (32, 128) int tensor — target (x shifted right by 1)
+         │
+         ├─ <span class="ui-label">logits = _model(x)</span>          shape: (32, 128, 65)
+         │
+         ├─ <span class="ui-label">loss = F.cross_entropy(logits.view(-1, 65), y.view(-1))</span>
+         │     scalar — average negative log-prob of correct next char
+         │
+         ├─ <span class="ui-label">loss.backward()</span>             fills .grad on all parameters
+         ├─ <span class="ui-label">clip_grad_norm_(max=1.0)</span>    prevents gradient explosion
+         ├─ <span class="ui-label">_optimizer.step()</span>          AdamW parameter update
+         │
+         ├─ if step in {100,250,500,750,1000,1500,2000,3000,4000,5000}:
+         │     <span class="ui-button">save_checkpoint(step)</span>  →  checkpoints/step_NNNNN.pt
+         │
+         └─ if step % 200 == 0:
+               <span class="ui-button">estimate_loss()</span>  (20 batches, no_grad)  →  train/val loss
+               yield log, status, <span class="ui-button">make_loss_plot()</span>  →  streams to browser
+
+   └─ After loop:
+         torch.save(_model.state_dict(), "tiny_shakespeare.pt")
+         _model.eval()
+         yield final log, model_status_str(), final chart</div>
+    </div>
+
+    <!-- Inference Flow -->
+    <h3>Inference flow (per character)</h3>
+    <div class="flow-box">
+      <div class="flow-title">Inside stream_generate() — what happens for each character</div>
+      <div class="ui-diagram">
+<span class="ui-label">prompt string</span>  (user input, e.g. "ROMEO:\n")
+        <span class="ui-arrow">│ encode(prompt)  →  list of ints, OOV chars silently dropped</span>
+        ▼
+<span class="ui-box">idx = torch.tensor([tokens])   shape: (1, T)</span>
+        │
+        └─ for step in range(length):
+                │
+                ├─ idx_cond = idx[:, -BLOCK_SIZE:]    <span class="ui-arrow">← truncate to context window</span>
+                │
+                ├─ <span class="ui-label">logits = _model(idx_cond)</span>     shape: (1, T, 65)
+                │        token emb + pos emb + 4×block + ln_f + head
+                │
+                ├─ logits = logits[:, -1, :]           shape: (1, 65)  ← last position only
+                │
+                ├─ <span class="ui-label">probs = F.softmax(logits / temp, dim=-1)</span>   shape: (1, 65)
+                │        temperature scales sharpness:
+                │        temp→0 = one-hot (always picks top)
+                │        temp=1 = raw model distribution
+                │        temp→∞ = uniform random
+                │
+                ├─ <span class="ui-button">chosen_id = torch.multinomial(probs, 1)</span>
+                │        stochastic sample — not always the argmax
+                │
+                ├─ <span class="ui-label">itos[chosen_id]</span>   →   the chosen character
+                │
+                ├─ idx = cat([idx, [[chosen_id]]], dim=1)   append to running sequence
+                ├─ _gen_history.append(idx.clone())         save for branching
+                │
+                └─ yield verbose_log, colored_html, entropy_chart, "", ""</div>
+    </div>
+
+    <!-- Attention Capture Flow -->
+    <h3>Attention capture flow</h3>
+    <div class="flow-box">
+      <div class="flow-title">Inside show_attention() — extracting what the model is "looking at"</div>
+      <div class="ui-diagram">
+<span class="ui-label">context_str</span>  (user input, last 18 chars used)
+        <span class="ui-arrow">│ context_str = context_str[-18:]</span>
+        ▼
+<span class="ui-box">tokens = encode(context_str)   list of ints</span>
+<span class="ui-box">idx_in = torch.tensor([tokens])   shape: (1, T)</span>
+        │
+        ├─ for block in _model.blocks:
+        │     block.attn._capture = True    <span class="ui-arrow">← arm the capture flag</span>
+        │
+        ├─ with torch.no_grad():
+        │     _model(idx_in)               <span class="ui-arrow">← forward pass triggers capture</span>
+        │        CausalSelfAttention.forward():
+        │            att = softmax(Q@K^T / sqrt(d))
+        │            if self._capture:
+        │                self._last_attn = att[0].detach().cpu()   shape: (4, T, T)
+        │
+        ├─ for block in _model.blocks:
+        │     block.attn._capture = False   <span class="ui-arrow">← disarm (must always reset)</span>
+        │
+        ├─ attn_layers = [block.attn._last_attn for block in _model.blocks]
+        │     list of 4 tensors, each shape: (n_head=4, T, T)
+        │
+        ├─ avg_all = mean over layers of attn.mean(heads)   shape: (T, T)
+        │
+        ├─ last_row = avg_all[-1]   shape: (T,)
+        │     = how much each previous char was attended to
+        │       when predicting the NEXT token
+        │
+        ├─ <span class="ui-button">make_attention_strip_html(chars, last_row)</span>  →  HTML bar chart
+        └─ <span class="ui-button">make_attention_chart(chars, attn_layers)</span>   →  matplotlib Figure</div>
+    </div>
+
+    <div class="callout danger">
+      <strong>Always reset _capture after the forward pass.</strong> If an exception occurs between setting <code>_capture = True</code> and resetting it to <code>False</code>, subsequent generate calls will continue writing to <code>_last_attn</code>, wasting memory and potentially returning stale attention data. The current implementation uses a sequential reset (not a try/finally block) — a future improvement would add error safety here.
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════ 6. GLOBAL STATE ══════════════════════ -->
+  <section id="state">
+    <h2><span class="sec-num">6</span> Global State</h2>
+
+    <p>All shared mutable state lives as module-level variables in <code>app.py</code>. There is no class wrapping them. Gradio handler functions access them via Python's <code>global</code> keyword. This is a deliberate trade-off — see Section 7 for rationale.</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Variable</th>
+          <th>Type</th>
+          <th>Initial value</th>
+          <th>When it changes</th>
+          <th>Read by</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>_model</code></td>
+          <td><code>GPT | None</code></td>
+          <td><span class="state-badge none">None</span></td>
+          <td>Set by <code>load_model()</code> or <code>_build_model()</code>. Set to <code>None</code> if load fails.</td>
+          <td>All generate/score/attention/replay handlers. Guards: <code>if _model is None: return error</code></td>
+        </tr>
+        <tr>
+          <td><code>_optimizer</code></td>
+          <td><code>AdamW | None</code></td>
+          <td><span class="state-badge none">None</span></td>
+          <td>Created in <code>_build_model()</code> alongside <code>_model</code>. Never modified after creation — AdamW maintains its own internal state (momentum buffers) as part of the optimizer object.</td>
+          <td><code>stream_training()</code> only</td>
+        </tr>
+        <tr>
+          <td><code>_gen_history</code></td>
+          <td><code>list[Tensor]</code></td>
+          <td><span class="state-badge set">[]</span></td>
+          <td>Reset to <code>[idx.clone()]</code> at the start of every <code>stream_generate()</code> call. Appended to at each generation step. Read by <code>branch_from_step()</code> to re-roll from a specific character position.</td>
+          <td><code>branch_from_step()</code></td>
+        </tr>
+        <tr>
+          <td><code>_last_temp</code></td>
+          <td><code>float</code></td>
+          <td><span class="state-badge set">1.0</span></td>
+          <td>Set at start of each <code>stream_generate()</code> call. Persists between calls so <code>branch_from_step()</code> can use the same temperature as the original generation.</td>
+          <td><code>branch_from_step()</code></td>
+        </tr>
+        <tr>
+          <td><code>_last_prompt</code></td>
+          <td><code>str</code></td>
+          <td><span class="state-badge set">""</span></td>
+          <td>Set at start of each <code>stream_generate()</code> call. Currently used only for bookkeeping — not consumed by any downstream function as of v1.0.</td>
+          <td>Not currently consumed</td>
+        </tr>
+        <tr>
+          <td><code>_training_in_progress</code></td>
+          <td><code>bool</code></td>
+          <td><span class="state-badge set">False</span></td>
+          <td>Set <code>True</code> at start of <code>stream_training()</code>. Set <code>False</code> on completion or early return. Guards against concurrent training requests (Gradio can queue multiple calls).</td>
+          <td><code>stream_training()</code> entry guard</td>
+        </tr>
+        <tr>
+          <td><code>_ngrams</code></td>
+          <td><code>set[str]</code></td>
+          <td><span class="state-badge startup">Built at startup</span></td>
+          <td><strong>Never changes</strong> after startup. Built once as a Python set of all 6-character substrings from the training text. At ~1.1M chars the set contains ~283,000 unique 6-grams. Read-only after construction.</td>
+          <td><code>compute_verbatim_mask()</code></td>
+        </tr>
+        <tr>
+          <td><code>_REPLAY_TEST</code></td>
+          <td><code>str</code></td>
+          <td><span class="state-badge startup">First 120 chars of training text</span></td>
+          <td><strong>Never changes.</strong> A fixed reference phrase used as the perplexity benchmark in the Replay tab. Using the same phrase across all checkpoints makes the perplexity curve directly comparable.</td>
+          <td><code>run_replay()</code> via <code>compute_perplexity()</code></td>
+        </tr>
+        <tr>
+          <td><code>train_data</code></td>
+          <td><code>Tensor (long)</code></td>
+          <td><span class="state-badge startup">90% of encoded text</span></td>
+          <td><strong>Never changes.</strong> Integer-encoded training corpus, first 90% of the dataset.</td>
+          <td><code>get_batch("train")</code></td>
+        </tr>
+        <tr>
+          <td><code>val_data</code></td>
+          <td><code>Tensor (long)</code></td>
+          <td><span class="state-badge startup">10% of encoded text</span></td>
+          <td><strong>Never changes.</strong> Integer-encoded validation corpus, last 10% of the dataset.</td>
+          <td><code>get_batch("val")</code>, <code>estimate_loss()</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>State transition diagram</h3>
+    <div class="ui-diagram">
+App starts
+    │
+    ├─ Load tinyshakespeare.txt → build stoi/itos/encode/decode/train_data/val_data
+    ├─ Build _ngrams set (283k 6-grams)  ← ~1-2 second startup cost
+    ├─ Set _REPLAY_TEST = _text[:120]
+    │
+    ├─ _model = None  ←─────────────────────────────────────────────────────────┐
+    │                                                                            │
+    ├─ User clicks "Load saved model"                                            │
+    │     → load_model()                                                         │
+    │         _model = GPT().load_state_dict(tiny_shakespeare.pt)               │
+    │         _model.eval()                                                      │
+    │                                                                            │
+    ├─ User clicks "Train from scratch"                                          │
+    │     → stream_training()                                                    │
+    │         _training_in_progress = True                                       │
+    │         _build_model() → _model = GPT(), _optimizer = AdamW               │
+    │         ... training loop ...                                              │
+    │         torch.save(tiny_shakespeare.pt)                                    │
+    │         _model.eval()                                                      │
+    │         _training_in_progress = False                                      │
+    │                                                                            │
+    ├─ User clicks "Generate"                                                    │
+    │     → stream_generate()                              ← requires _model     │
+    │         _gen_history = [initial_idx]                                       │
+    │         _last_temp = temp                                                  │
+    │         _last_prompt = prompt                                              │
+    │         ... yields per character ...                                       │
+    │         _gen_history grows to length+1 entries                            │
+    │                                                                            │
+    └─ User navigates away / app restart                                         │
+          All in-memory state lost ──────────────────────────────────────────────┘
+          Weights survive on disk as tiny_shakespeare.pt</div>
+  </section>
+
+
+  <!-- ══════════════════════ 7. DESIGN DECISIONS ══════════════════════ -->
+  <section id="decisions">
+    <h2><span class="sec-num">7</span> Key Design Decisions and Trade-offs</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Decision</th>
+          <th>Chosen approach</th>
+          <th>Why</th>
+          <th>Trade-off</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Character-level vs. subword tokenisation</strong></td>
+          <td>Character-level: one token per character, vocab size 65</td>
+          <td>Makes every decision visible and explainable. A non-technical user can see "the model picked the letter 'R'" without needing to understand BPE tokens. Shakespeare's vocabulary is also small enough that character-level is viable.</td>
+          <td>Much slower to generate meaningful output than word-piece tokenisers. The model must learn spelling from scratch. Context window of 128 chars covers only a few sentences rather than paragraphs.</td>
+        </tr>
+        <tr>
+          <td><strong>Single-file architecture</strong> (<code>app.py</code> ~1,066 lines)</td>
+          <td>Everything in one Python file: model classes, data loading, all handlers, all helpers, Gradio UI wiring</td>
+          <td>Eliminates import complexity and relative path issues. Any developer can open one file and understand the entire system. AI agents (who read files) see the complete picture in a single read.</td>
+          <td>At &gt;1,000 lines the file becomes harder to navigate. Adding further features risks making it unwieldy. A future refactor might split into <code>model.py</code>, <code>handlers.py</code>, <code>helpers.py</code>.</td>
+        </tr>
+        <tr>
+          <td><strong>Global state vs. class-based state</strong></td>
+          <td>Module-level variables (<code>_model</code>, <code>_gen_history</code>, etc.)</td>
+          <td>Gradio handler functions need to share state across button clicks without passing it through Gradio's <code>gr.State</code> component (which serialises to JSON and cannot hold PyTorch tensors or model objects). Module-level globals are the simplest solution that actually works.</td>
+          <td>Not thread-safe for concurrent users. A single Gradio server process serves all users with the same model. Acceptable for a single-user local app; would require complete redesign for a shared deployment.</td>
+        </tr>
+        <tr>
+          <td><strong>Gradio 6 streaming generators</strong></td>
+          <td>Python generator functions (<code>yield</code>) for all long-running tabs</td>
+          <td>Gradio 6 natively converts generator functions to streaming WebSocket responses. The browser receives partial updates in real time. No polling, no explicit async code, no threading required from the developer.</td>
+          <td>Every <code>yield</code> must emit a tuple of exactly the right length. Using <code>gr.skip()</code> as placeholder is necessary when skipping updates. Generators cannot be interrupted mid-stream from the UI without a stop button (not yet implemented).</td>
+        </tr>
+        <tr>
+          <td><strong>Matplotlib figures returned directly</strong></td>
+          <td><code>gr.Plot</code> accepts a <code>matplotlib.figure.Figure</code> object directly</td>
+          <td>Simpler than converting to base64 PNG strings. Gradio handles the serialisation. Dark theme is applied directly to the figure via <code>_dark_ax()</code> before returning.</td>
+          <td>Matplotlib colors must be in <code>#rrggbb</code> hex format. The string format <code>rgb(r,g,b)</code> silently fails or throws errors in Matplotlib's color parser. All color values in the app use hex (e.g., <code>#f78c6c</code> not <code>rgb(247,140,108)</code>).</td>
+        </tr>
+        <tr>
+          <td><strong>N-gram verbatim detection</strong></td>
+          <td>Python <code>set</code> of all 6-character substrings from training text</td>
+          <td>O(1) lookup per n-gram. Conceptually transparent — a match means "this exact 6-char string appears in the training data." No model inference needed. Startup cost (~1-2 seconds) is paid once.</td>
+          <td>N-gram matching is not semantic. It cannot detect paraphrasing or near-duplicate passages. A 6-gram match may be coincidental (common phrases like "the" appear everywhere). Embedding similarity would be more accurate but requires a second inference pass per generation.</td>
+        </tr>
+        <tr>
+          <td><strong>Attention capture via instance flag</strong></td>
+          <td><code>self._capture = False</code> and <code>self._last_attn = None</code> on each <code>CausalSelfAttention</code> instance</td>
+          <td>Avoids modifying the <code>forward()</code> method signature. Existing generate calls that don't need attention data incur zero overhead. The flag is toggled only for the Attention tab's one-off analysis pass.</td>
+          <td>The flag is shared state on the module — not thread-safe. Requires careful reset after each use. A future improvement: use PyTorch's <code>register_forward_hook()</code> API which is designed for this pattern and is thread-safe.</td>
+        </tr>
+        <tr>
+          <td><strong>Checkpoint zero-padding</strong> (<code>step_00100.pt</code>)</td>
+          <td>5-digit zero-padded step number in filename</td>
+          <td>Ensures that lexicographic sort (<code>sorted(os.listdir(...))</code>) produces the correct chronological order. Without padding, <code>step_1000.pt</code> would sort before <code>step_250.pt</code> because "1" &lt; "2".</td>
+          <td>Slightly longer filenames. Step numbers above 99,999 would overflow — acceptable since training runs top out at 5,000 steps.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+
+  <!-- ══════════════════════ 8. AI AGENT ECOSYSTEM ══════════════════════ -->
+  <section id="agents">
+    <h2><span class="sec-num">8</span> AI Agent Ecosystem</h2>
+
+    <p>The project ships three Claude sub-agents in <code>.claude/agents/</code>. Each is a Markdown file with a YAML front-matter block that defines the agent's name, model, and tools. When invoked via Claude Code, the agent receives the instructions in its file as a system prompt and operates with the specified tool set.</p>
+
+    <div class="feature-grid" style="grid-template-columns:1fr 1fr 1fr;">
+      <div class="feature-card">
+        <h4>Architect</h4>
+        <p>Plans new features before any code is written. Produces structured written plans only — never edits files. Reads <code>app.py</code> before every plan to stay grounded in the current codebase.</p>
+      </div>
+      <div class="feature-card green">
+        <h4>Tester</h4>
+        <p>Writes a minimal test script, runs it with the project's virtual environment, reports pass/fail, and deletes the test file. Never edits <code>app.py</code> — only reports bugs.</p>
+      </div>
+      <div class="feature-card orange">
+        <h4>Reviewer</h4>
+        <p>Audits code for correctness, safety, and consistency with known patterns. Read-only — never edits files. Produces a structured report with bugs, risks, good patterns, and suggestions.</p>
+      </div>
+    </div>
+
+    <h3>Agent details</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Agent</th>
+          <th>File</th>
+          <th>Model</th>
+          <th>Tools</th>
+          <th>Can write files?</th>
+          <th>Trigger phrases</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>architect</strong></td>
+          <td><code>.claude/agents/architect.md</code></td>
+          <td>claude-opus-4-6</td>
+          <td><code>Read, Grep, Glob</code></td>
+          <td>No — plan only</td>
+          <td>"plan this feature", "design how to build", "where should this code live", "architect a new tab"</td>
+        </tr>
+        <tr>
+          <td><strong>tester</strong></td>
+          <td><code>.claude/agents/tester.md</code></td>
+          <td>claude-haiku-4</td>
+          <td><code>Read, Glob, Grep, Bash, Write</code></td>
+          <td>Yes — writes <code>test_temp.py</code>, deletes it after</td>
+          <td>"test this", "verify it works", "check that it runs", "run the tests"</td>
+        </tr>
+        <tr>
+          <td><strong>reviewer</strong></td>
+          <td><code>.claude/agents/reviewer.md</code></td>
+          <td>claude-sonnet-4-6</td>
+          <td><code>Read, Grep, Glob</code></td>
+          <td>No — report only</td>
+          <td>"review this code", "check for bugs", "audit this function", "is this correct"</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>How agents interact with the codebase</h3>
+    <p>All three agents always start by reading <code>app.py</code> in full before producing any output. The Architect also reads the agent definition files and <code>userguide.html</code> when updating documentation. The Reviewer maintains a table of known gotchas (Matplotlib hex colors, Gradio 6 parameter locations, generator yield counts) and explicitly checks each one.</p>
+
+    <h3>Recommended workflow for adding a new feature</h3>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Run the Architect agent</strong>
+          Describe the feature in plain English. The agent reads <code>app.py</code> and produces a structured plan: what functions to add, what global state is needed, what the Gradio UI looks like, and what could go wrong. No code is written yet.
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Build the feature (Claude Code or manual)</strong>
+          Implement the plan. Follow the Architect's spec. Keep all existing tabs working. Use the patterns established in the codebase (hex colors, generator yield counts, <code>if _model is None</code> guards).
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Run the Tester agent</strong>
+          The Tester writes a minimal script, runs it with <code>.venv/bin/python</code>, reports results, and cleans up. If tests fail, it identifies the bug but does not fix it.
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <strong>Run the Reviewer agent</strong>
+          The Reviewer reads the modified <code>app.py</code> and produces a bug report. It checks for missing guards, wrong Matplotlib colors, incorrect yield tuple lengths, attention capture reset, and checkpoint naming.
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <strong>Update documentation</strong>
+          Update <code>userguide.html</code> and <code>ARCHITECTURE.html</code> to reflect the new feature. The Architect agent can produce the HTML additions.
+        </div>
+      </div>
+    </div>
+
+    <h3>Reviewer's known-gotchas checklist</h3>
+    <table>
+      <thead>
+        <tr><th>Issue</th><th>Wrong</th><th>Right</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Matplotlib colors</td><td><code>rgb(220,141,80)</code></td><td><code>#dc8d50</code> (hex only)</td></tr>
+        <tr><td>Gradio 6 launch params</td><td><code>gr.Blocks(theme=..., css=...)</code></td><td><code>demo.launch(theme=..., css=...)</code></td></tr>
+        <tr><td>Gradio 6 removed param</td><td><code>gr.Textbox(show_copy_button=True)</code></td><td>Remove the param entirely</td></tr>
+        <tr><td>Generator yield tuples</td><td>yield fewer items than <code>outputs=[]</code></td><td>yield exactly N items matching outputs list</td></tr>
+        <tr><td>Model not loaded guard</td><td>Missing <code>if _model is None: return ...</code></td><td>Always guard before model use in every handler</td></tr>
+        <tr><td>Attention capture reset</td><td>Forgot to reset <code>self._capture = False</code></td><td>Always reset after forward pass</td></tr>
+        <tr><td>Checkpoint files</td><td><code>step_100.pt</code></td><td><code>step_00100.pt</code> (5-digit zero-padded)</td></tr>
+        <tr><td>Perplexity calculation</td><td><code>exp(loss)</code> without <code>no_grad</code></td><td>Always wrap in <code>with torch.no_grad():</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+
+  <!-- ══════════════════════ 9. FILE STRUCTURE ══════════════════════ -->
+  <section id="files">
+    <h2><span class="sec-num">9</span> File Structure</h2>
+
+    <div class="ui-diagram">
+<span class="ui-label">~/llm/</span>  ← project root
+│
+├── <span class="ui-tab">app.py</span>                       <span class="ui-arrow"># Main application — ~1,066 lines</span>
+│       All model classes (GPT, Block, CausalSelfAttention, MLP)
+│       All Gradio handlers (stream_training, stream_generate, etc.)
+│       All helper functions (conf_to_hex, make_colored_html, etc.)
+│       Gradio UI layout (gr.Blocks, gr.Tab, gr.Row, etc.)
+│       Global state (_model, _ngrams, _gen_history, etc.)
+│       Config constants (BLOCK_SIZE, N_EMBD, BATCH_SIZE, etc.)
+│
+├── <span class="ui-tab">userguide.html</span>               <span class="ui-arrow"># End-user documentation (non-technical)</span>
+│       Same dark CSS theme as ARCHITECTURE.html
+│       16 sections covering all 6 tabs, metrics, TensorBoard, CLI tools
+│       Maintained by the Architect agent when app.py changes
+│
+├── <span class="ui-tab">ARCHITECTURE.html</span>            <span class="ui-arrow"># This file — technical architecture document</span>
+│       10 sections: summary → model → tabs → flows → state → agents → extension
+│       Maintained by the Architect agent
+│
+├── <span class="ui-tab">RESUME.md</span>                    <span class="ui-arrow"># Session resume file for new Claude sessions</span>
+│       What exists, what works, what still needs building
+│       Feature backlog with implementation notes
+│       User persona and context
+│
+├── <span class="ui-tab">tinyshakespeare.txt</span>          <span class="ui-arrow"># Training corpus — 1.1M chars of Shakespeare</span>
+│       Downloaded once from karpathy/char-rnn if not present
+│       65 unique characters → VOCAB_SIZE = 65
+│
+├── <span class="ui-tab">tiny_shakespeare.pt</span>          <span class="ui-arrow"># Saved model weights (PyTorch state_dict)</span>
+│       Written by stream_training() after completion
+│       Read by load_model() when user clicks "Load saved model"
+│       ~870KB for this 216K-parameter model
+│
+├── <span class="ui-tab">launch.sh</span>                    <span class="ui-arrow"># One-click launcher</span>
+│       Creates .venv if missing
+│       Installs dependencies (torch, gradio, tensorboard, matplotlib)
+│       Runs: .venv/bin/python app.py
+│
+├── <span class="ui-tab">interact.py</span>                  <span class="ui-arrow"># Terminal REPL (standalone, no Gradio)</span>
+│       Verbose per-token logging in the terminal
+│       Useful for debugging without the browser overhead
+│
+├── <span class="ui-tab">tiny_shakespeare_gpt.py</span>      <span class="ui-arrow"># Standalone training script (no UI)</span>
+│       Command-line training without Gradio
+│       Useful for longer training runs in the background
+│
+├── <span class="ui-label">checkpoints/</span>                  <span class="ui-arrow"># Auto-created training snapshots</span>
+│   ├── step_00001.pt               <span class="ui-arrow"># Step 1 (demo replay training)</span>
+│   ├── step_00100.pt               <span class="ui-arrow"># Step 100 — very early learning</span>
+│   ├── step_00250.pt               <span class="ui-arrow"># Step 250</span>
+│   ├── step_00500.pt               <span class="ui-arrow"># Step 500</span>
+│   ├── step_00750.pt               <span class="ui-arrow"># Step 750</span>
+│   ├── step_01000.pt               <span class="ui-arrow"># Step 1000</span>
+│   ├── step_01500.pt               <span class="ui-arrow"># Step 1500</span>
+│   ├── step_02000.pt               <span class="ui-arrow"># Step 2000</span>
+│   ├── step_03000.pt               <span class="ui-arrow"># Step 3000</span>
+│   ├── step_04000.pt               <span class="ui-arrow"># Step 4000</span>
+│   └── step_05000.pt               <span class="ui-arrow"># Step 5000 — well trained</span>
+│
+├── <span class="ui-label">runs/</span>                         <span class="ui-arrow"># TensorBoard event files</span>
+│   └── tiny_shakespeare/           <span class="ui-arrow"># Loss/train, loss/val, grad_norm logged here</span>
+│       └── events.out.tfevents.*   <span class="ui-arrow"># View with: tensorboard --logdir runs/</span>
+│
+├── <span class="ui-label">.claude/</span>                      <span class="ui-arrow"># Claude Code configuration</span>
+│   └── agents/
+│       ├── <span class="ui-tab">architect.md</span>         <span class="ui-arrow"># Architect agent definition (model: opus)</span>
+│       ├── <span class="ui-tab">tester.md</span>            <span class="ui-arrow"># Tester agent definition (model: haiku)</span>
+│       └── <span class="ui-tab">reviewer.md</span>          <span class="ui-arrow"># Reviewer agent definition (model: sonnet)</span>
+│
+└── <span class="ui-label">.venv/</span>                        <span class="ui-arrow"># Python 3.14 virtual environment</span>
+    Key packages:
+    ├── torch                       <span class="ui-arrow"># PyTorch — model, training, inference</span>
+    ├── gradio 6.8.0                <span class="ui-arrow"># Browser UI framework</span>
+    ├── tensorboard                 <span class="ui-arrow"># TensorBoard logging backend</span>
+    └── matplotlib                  <span class="ui-arrow"># Chart generation (Agg backend, non-interactive)</span></div>
+
+    <div class="callout tip">
+      <strong>Python environment:</strong> Always use <code>.venv/bin/python</code>, never the system <code>python3</code>. The virtual environment requires <code>setuptools&lt;70</code> due to Python 3.14 compatibility constraints. The Tester agent always uses <code>.venv/bin/python</code> in its test runner.
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════ 10. EXTENSION GUIDE ══════════════════════ -->
+  <section id="extension">
+    <h2><span class="sec-num">10</span> Improvement and Extension Guide</h2>
+
+    <p>The most common change to this codebase is adding a new tab. Here is the complete sequence, in order. Each step has a concrete instruction and a potential failure mode to watch for.</p>
+
+    <h3>How to add a new tab — complete checklist</h3>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Write the handler function</strong>
+          <p>Decide first: is this tab long-running (use a generator with <code>yield</code>) or instant (use <code>return</code>)? Generator functions can stream updates to the browser. Instant functions block until complete.</p>
+          <pre><code><span class="cm"># Generator pattern (for long operations)</span>
+def my_new_handler(input_a, input_b):
+    if _model is None:                          <span class="yw"># ← REQUIRED guard</span>
+        yield "⚠️  No model loaded.", None
+        return
+    <span class="cm"># ... do work ...</span>
+    yield progress_text, chart_figure          <span class="yw"># ← must match outputs= list</span>
+
+<span class="cm"># Instant return pattern (for fast operations)</span>
+def my_new_handler(input_a):
+    if _model is None:
+        return "⚠️  No model loaded.", None
+    <span class="cm"># ... do work ...</span>
+    return html_string, figure</code></pre>
+          <p><strong>Watch out:</strong> The tuple length of every <code>yield</code> (or the <code>return</code>) must exactly match the number of items in the <code>outputs=[]</code> list you wire in Step 3. A mismatch causes silent failures.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Add the UI layout inside a <code>with gr.Tab()</code> block</strong>
+          <p>Insert the block at the correct position in the <code>with gr.Blocks() as demo:</code> section. Tabs appear in the order they are defined. Follow the existing pattern: left column for inputs, right column (wider) for outputs.</p>
+          <pre><code>with gr.Tab("&#x1F195;  My New Tab"):
+    gr.Markdown("Plain English description of what this tab does.")
+    with gr.Row():
+        with gr.Column(scale=1):
+            my_input   = gr.Textbox(label="Your input", lines=3)
+            my_slider  = gr.Slider(1, 100, value=50, label="A setting")
+            btn_my_tab = gr.Button("&#x25B6;&#xFE0F;  Run it", variant="primary")
+        with gr.Column(scale=2):
+            my_output_html  = gr.HTML(label="Results")
+            my_output_chart = gr.Plot(label="Chart")</code></pre>
+          <p><strong>UI rules:</strong> All labels must be plain English — no variable names as labels. No jargon. Use the existing temperature/label vocabulary where possible ("Focused", "Creative", etc.).</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Wire the button to the handler with <code>.click()</code></strong>
+          <p>Add the event binding in the "Wire up events" section at the bottom of the <code>with gr.Blocks():</code> block.</p>
+          <pre><code>btn_my_tab.click(
+    fn=my_new_handler,
+    inputs=[my_input, my_slider],
+    outputs=[my_output_html, my_output_chart]
+)</code></pre>
+          <p><strong>Watch out:</strong> The <code>inputs=[]</code> list must match the handler's function signature exactly (same order, same number). The <code>outputs=[]</code> list must match the number of items yielded/returned.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <strong>Add the <code>if _model is None</code> guard</strong>
+          <p>Every handler that uses <code>_model</code> must start with this guard. Without it, the handler will crash with an <code>AttributeError</code> if the user hasn't loaded a model yet.</p>
+          <pre><code><span class="cm"># For generators:</span>
+if _model is None:
+    yield "&lt;p style='color:#f87171'&gt;&#x26A0;&#xFE0F;  No model loaded. Go to Train tab first.&lt;/p&gt;", None
+    return
+
+<span class="cm"># For instant return functions:</span>
+if _model is None:
+    return "&lt;p style='color:#f87171'&gt;&#x26A0;&#xFE0F;  No model loaded.&lt;/p&gt;", None</code></pre>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <strong>Follow the dark theme rules for any HTML you generate</strong>
+          <p>All dynamically generated HTML must use the same color palette as the rest of the app. Copy the established patterns from <code>make_colored_html()</code>, <code>_gallery_html()</code>, or <code>_replay_samples_html()</code>.</p>
+          <pre><code><span class="cm"># Key color values for inline styles</span>
+bg_page   = "#0f1117"    <span class="cm"># --bg</span>
+bg_card   = "#1a1d27"    <span class="cm"># --surface</span>
+bg_panel  = "#22263a"    <span class="cm"># --card</span>
+border    = "#2e3350"    <span class="cm"># --border</span>
+accent    = "#7c83fd"    <span class="cm"># --accent</span>
+orange    = "#f78c6c"    <span class="cm"># --orange</span>
+green     = "#4ade80"    <span class="cm"># --green</span>
+muted     = "#8892b0"    <span class="cm"># --muted</span>
+
+<span class="cm"># Matplotlib charts: use _dark_ax(ax) before plotting</span>
+fig, ax = plt.subplots(figsize=(7, 3), facecolor='#0f1117')
+_dark_ax(ax)
+ax.plot(x, y, color='#7c83fd', linewidth=2)   <span class="cm"># hex only</span></code></pre>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">6</div>
+        <div class="step-body">
+          <strong>Update <code>userguide.html</code> with a plain-English section</strong>
+          <p>Add a new <code>&lt;section&gt;</code> to <code>userguide.html</code> describing what the new tab does, what each control does, and how to interpret the output. Follow the existing section format. The Architect agent can produce this HTML.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">7</div>
+        <div class="step-body">
+          <strong>Run the Tester agent</strong>
+          <p>Invoke the Tester agent and tell it which function to test. It will write <code>test_temp.py</code>, run it with <code>.venv/bin/python</code>, report results, and clean up. Fix any failures before proceeding.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">8</div>
+        <div class="step-body">
+          <strong>Run the Reviewer agent</strong>
+          <p>Invoke the Reviewer agent and ask it to review the modified <code>app.py</code>. It will check for all known gotchas and produce a bug/risk report. Address any red (must-fix) findings before shipping.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">9</div>
+        <div class="step-body">
+          <strong>Update this document</strong>
+          <p>Re-run the Architect agent with instructions to update <code>ARCHITECTURE.html</code> — specifically Sections 4 (add row to the tabs table), 6 (add any new global state), and 9 (add any new files to the file tree).</p>
+        </div>
+      </div>
+    </div>
+
+    <h3>Common pitfalls to avoid</h3>
+    <table>
+      <thead>
+        <tr><th>Pitfall</th><th>Symptom</th><th>Fix</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Wrong yield tuple length</td>
+          <td>Gradio silently ignores updates or throws a runtime error</td>
+          <td>Count the items in <code>outputs=[]</code> and ensure every <code>yield</code> has exactly that many values. Use <code>gr.skip()</code> for outputs you don't want to update on that yield.</td>
+        </tr>
+        <tr>
+          <td>RGB color string in Matplotlib</td>
+          <td>Plot renders with wrong colors or throws <code>ValueError: Invalid RGBA argument</code></td>
+          <td>Replace all <code>rgb(r,g,b)</code> with <code>#rrggbb</code> hex strings.</td>
+        </tr>
+        <tr>
+          <td>Missing model guard</td>
+          <td><code>AttributeError: 'NoneType' object has no attribute 'eval'</code></td>
+          <td>Add <code>if _model is None: yield/return error, None</code> at the very start of the handler.</td>
+        </tr>
+        <tr>
+          <td>Calling inference without <code>no_grad</code></td>
+          <td>Memory leak — gradient buffers accumulate across calls</td>
+          <td>Wrap all <code>_model()</code> calls in <code>with torch.no_grad():</code> except during training.</td>
+        </tr>
+        <tr>
+          <td>Forgetting to call <code>_model.eval()</code></td>
+          <td>Dropout is active during inference — outputs are stochastic in a bad way</td>
+          <td>Call <code>_model.eval()</code> before any inference pass. Call <code>_model.train()</code> before training.</td>
+        </tr>
+        <tr>
+          <td>Not resetting attention capture flag</td>
+          <td>Future generate calls contaminate <code>_last_attn</code> with stale values</td>
+          <td>Always reset <code>block.attn._capture = False</code> after the forward pass, ideally in a try/finally block.</td>
+        </tr>
+        <tr>
+          <td>Checkpoint file without zero-padding</td>
+          <td>Replay tab shows checkpoints out of chronological order</td>
+          <td>Always use <code>f"step_{step:05d}.pt"</code> (five digits, zero-padded).</td>
+        </tr>
+        <tr>
+          <td>New tab uses <code>gr.Blocks(theme=...)</code></td>
+          <td>Theme/CSS ignored, Gradio throws deprecation warning</td>
+          <td>Theme and CSS must be in <code>demo.launch(theme=..., css=...)</code>.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Ideas for future extensions</h3>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <h4>Stop button for generators</h4>
+        <p>Add a "Stop generation" button. Gradio supports this via a <code>cancels=</code> parameter on the event. Currently, the only way to stop a long generation is to reload the page.</p>
+      </div>
+      <div class="feature-card green">
+        <h4>Perplexity comparison tab</h4>
+        <p>A tab that accepts two text samples and compares their perplexity scores — useful for understanding which text is more "Shakespearean" to the model.</p>
+      </div>
+      <div class="feature-card orange">
+        <h4>Top-k vs. top-p sampling</h4>
+        <p>Add nucleus sampling (top-p) as an alternative to top-k. Expose it as a toggle in the Generate tab. A slider for <code>p</code> (0.1–1.0) would replace the top-k slider when enabled.</p>
+      </div>
+      <div class="feature-card yellow">
+        <h4>Model size comparison</h4>
+        <p>A tab that trains models of different sizes (1 layer, 2 layers, 4 layers) and compares their perplexity curves side by side — demonstrating the scaling law in miniature.</p>
+      </div>
+      <div class="feature-card red">
+        <h4>Register forward hooks (safety)</h4>
+        <p>Replace the <code>_capture</code> instance flag pattern with PyTorch's <code>register_forward_hook()</code> API. Safer, thread-compatible, and does not require resetting after each use.</p>
+      </div>
+      <div class="feature-card" style="border-top-color:var(--muted)">
+        <h4>Weight tying</h4>
+        <p>Share weights between <code>tok_emb</code> and <code>head</code> (set <code>head.weight = tok_emb.weight</code>). This reduces parameters by 4,160 and often improves perplexity, especially for small vocabularies.</p>
+      </div>
+    </div>
+  </section>
+
+</div><!-- .container -->
+
+<footer>
+  Shakespeare GPT Architecture Document &middot; Auto-maintained by the Architect Agent &middot; Last updated 2026-03-02
+</footer>
+
+</body>
+</html>
